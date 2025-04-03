@@ -1,0 +1,73 @@
+name: Generate Mermaid Diagrams
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'docs/**/*.md'
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  generate-mermaid-diagrams:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: |
+        npm install -g @mermaid-js/mermaid-cli
+
+    - name: Find Markdown files with Mermaid diagrams
+      id: find_files
+      run: |
+        FILES=$(grep -l '```mermaid' $(find docs -name "*.md") || echo "")
+        echo "files=$FILES" >> $GITHUB_OUTPUT
+
+    - name: Generate diagrams
+      if: steps.find_files.outputs.files != ''
+      run: |
+        mkdir -p .diagrams
+        for file in ${{ steps.find_files.outputs.files }}; do
+          DIR=$(dirname "$file")
+          BASE=$(basename "$file" .md)
+          OUTPUT_DIR="$DIR/images"
+          mkdir -p "$OUTPUT_DIR"
+          
+          # Extract all mermaid blocks from the file
+          grep -n '```mermaid' "$file" | cut -d ':' -f1 | while read -r start_line; do
+            end_line=$(tail -n +"$start_line" "$file" | grep -n '```' | head -n 2 | tail -n 1 | cut -d ':' -f1)
+            if [ -n "$end_line" ]; then
+              diagram_lines=$((end_line - 1))
+              extract_cmd="tail -n +$((start_line + 1)) \"$file\" | head -n $diagram_lines > .diagrams/temp.mmd"
+              eval "$extract_cmd"
+              
+              # Generate a unique name based on the content hash
+              HASH=$(md5sum .diagrams/temp.mmd | cut -d ' ' -f1)
+              DIAGRAM_PATH="$OUTPUT_DIR/${BASE}_diagram_${HASH}.png"
+              
+              # Generate the diagram
+              npx mmdc -i .diagrams/temp.mmd -o "$DIAGRAM_PATH" -t dark
+              
+              # Replace the mermaid block with an image reference in the markdown
+              sed -i "${start_line}s/\`\`\`mermaid/\`\`\`mermaid\\n![Diagram](\\/images\/${BASE}_diagram_${HASH}.png)/" "$file"
+            fi
+          done
+        done
+
+    - name: Commit generated diagrams
+      if: steps.find_files.outputs.files != ''
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add docs/
+        git commit -m "Auto-generate Mermaid diagrams" || echo "No changes to commit"
+        git push

@@ -1,0 +1,18 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- You can @ files here
+- You can use markdown but dont have to
+Only compile to scala 3
+No downgrading to scala 2
+No python
+No typescript or node
+This library mus always compile e.g. sbt compile
+Make sure you are running tests for all projects e.g. sbt test
+scalafmt is much appreciated 
+integration tests as seperate sbt projects 

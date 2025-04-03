@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic AI Framework - Web Dashboard</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>Agentic AI Framework</h1>
+            <span class="tagline">Type-safe, functional agent management</span>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="#" class="active" data-view="dashboard">Dashboard</a></li>
+                <li><a href="#" data-view="memory">Memory Inspector</a></li>
+                <li><a href="#" data-view="tasks">Task Manager</a></li>
+                <li><a href="#" data-view="docs">Documentation</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Dashboard View -->
+        <section id="dashboard-view" class="view active">
+            <div class="dashboard-header">
+                <h2>Agent Dashboard</h2>
+                <div class="system-status">
+                    <span class="status-indicator online"></span>
+                    <span class="status-text">System Online</span>
+                </div>
+            </div>
+            
+            <div class="dashboard-grid">
+                <div class="card agent-status">
+                    <h3>Agent Status</h3>
+                    <div class="agent-list">
+                        <div class="agent">
+                            <div class="agent-name">TaskProcessorAgent</div>
+                            <div class="agent-state active">Active</div>
+                            <div class="agent-metadata">Memory Usage: 24MB</div>
+                        </div>
+                        <div class="agent">
+                            <div class="agent-name">KnowledgeAgent</div>
+                            <div class="agent-state idle">Idle</div>
+                            <div class="agent-metadata">Memory Usage: 12MB</div>
+                        </div>
+                        <div class="agent">
+                            <div class="agent-name">PlanningAgent</div>
+                            <div class="agent-state idle">Idle</div>
+                            <div class="agent-metadata">Memory Usage: 8MB</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card recent-tasks">
+                    <h3>Recent Tasks</h3>
+                    <table class="tasks-table">
+                        <thead>
+                            <tr>
+                                <th>Task ID</th>
+                                <th>Title</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><a href="#" class="task-link">T-1001</a></td>
+                                <td>Research quantum computing</td>
+                                <td><span class="status completed">Completed</span></td>
+                                <td>2 mins ago</td>
+                            </tr>
+                            <tr>
+                                <td><a href="#" class="task-link">T-1000</a></td>
+                                <td>Analyze market trends</td>
+                                <td><span class="status completed">Completed</span></td>
+                                <td>10 mins ago</td>
+                            </tr>
+                            <tr>
+                                <td><a href="#" class="task-link">T-999</a></td>
+                                <td>Generate sales report</td>
+                                <td><span class="status completed">Completed</span></td>
+                                <td>25 mins ago</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="card memory-usage">
+                    <h3>Memory Usage</h3>
+                    <div id="memory-chart"></div>
+                    <!-- Added a tooltip for enhanced debugging data -->
+                    <div class="debug-tooltip">Hover over data points for detailed metrics</div>
+                    <div class="memory-stats">
+                        <div class="stat">
+                            <div class="stat-label">Total Cells</div>
+                            <div class="stat-value">124</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Active Cells</div>
+                            <div class="stat-value">87</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Compression Ratio</div>
+                            <div class="stat-value">2.4:1</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card system-logs">
+                    <h3>System Logs</h3>
+                    <div class="log-container">
+                        <div class="log-entry info">
+                            <span class="timestamp">14:22:38</span>
+                            <span class="log-text">Task 'Research quantum computing' completed successfully</span>
+                        </div>
+                        <div class="log-entry info">
+                            <span class="timestamp">14:22:35</span>
+                            <span class="log-text">Subtask 'Evaluate quantum ML applications' completed</span>
+                        </div>
+                        <div class="log-entry info">
+                            <span class="timestamp">14:22:32</span>
+                            <span class="log-text">Subtask 'Analyze quantum platforms' completed</span>
+                        </div>
+                        <div class="log-entry info">
+                            <span class="timestamp">14:22:28</span>
+                            <span class="log-text">Subtask 'Investigate quantum computing state' completed</span>
+                        </div>
+                        <div class="log-entry debug">
+                            <span class="timestamp">14:22:20</span>
+                            <span class="log-text">Processing subtask 'Evaluate quantum ML applications'</span>
+                        </div>
+                        <div class="log-entry debug">
+                            <span class="timestamp">14:22:15</span>
+                            <span class="log-text">Processing subtask 'Analyze quantum platforms'</span>
+                        </div>
+                        <div class="log-entry debug">
+                            <span class="timestamp">14:22:10</span>
+                            <span class="log-text">Processing subtask 'Investigate quantum computing state'</span>
+                        </div>
+                        <div class="log-entry info">
+                            <span class="timestamp">14:22:05</span>
+                            <span class="log-text">Task 'Research quantum computing' started processing</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- New advanced debugging visualizations section -->
+            <h2 class="section-header">Advanced Agent Debugging</h2>
+            <div class="dashboard-grid">
+                <div class="card visualization-card">
+                    <h3>Agent Decision Tree</h3>
+                    <div id="agent-decision-tree" class="visualization-container"></div>
+                    <div class="card-footer">
+                        <span class="debug-info">Node size indicates processing time</span>
+                    </div>
+                </div>
+                
+                <div class="card visualization-card">
+                    <h3>Performance Metrics</h3>
+                    <div id="performance-metrics" class="visualization-container"></div>
+                    <div class="card-footer">
+                        <span class="debug-info">Blue: Processing time | Red: Memory usage</span>
+                    </div>
+                </div>
+                
+                <div class="card visualization-card">
+                    <h3>Agent State Timeline</h3>
+                    <div id="agent-state-timeline" class="visualization-container"></div>
+                    <div class="card-footer">
+                        <span class="debug-info">Shows state transitions during task processing</span>
+                    </div>
+                </div>
+                
+                <!-- Other debugging visualizations could be added here -->
+            </div>
+        </section>
+
+        <!-- Memory Inspector View -->
+        <section id="memory-view" class="view">
+            <h2>Memory Inspector</h2>
+            <div class="memory-controls">
+                <div class="search-container">
+                    <input type="text" placeholder="Search memory cells..." id="memory-search">
+                    <button id="search-btn">Search</button>
+                </div>
+                <div class="filter-container">
+                    <label for="tag-filter">Filter by tag:</label>
+                    <select id="tag-filter">
+                        <option value="">All Tags</option>
+                        <option value="request">Request</option>
+                        <option value="response">Response</option>
+                        <option value="context">Context</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="memory-visualization">
+                <div id="memory-graph"></div>
+                <div class="memory-details">
+                        <div class="visualization-controls">
+                            <button id="reset-view" class="control-btn">Reset View</button>
+                            <button id="toggle-labels" class="control-btn">Toggle Labels</button>
+                            <div class="zoom-controls">
+                                <button id="zoom-in" class="control-btn">+</button>
+                                <button id="zoom-out" class="control-btn">-</button>
+                            </div>
+                        </div>
+                    <div class="detail-panel">
+                        <h3>Cell Details</h3>
+                        <div class="no-selection">Select a memory cell to view details</div>
+                        <div class="cell-details hidden">
+                            <div class="detail-row">
+                                <span class="detail-label">ID:</span>
+                                <span class="detail-value" id="cell-id"></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Tags:</span>
+                                <span class="detail-value" id="cell-tags"></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Created:</span>
+                                <span class="detail-value" id="cell-created"></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Last Modified:</span>
+                                <span class="detail-value" id="cell-modified"></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Last Accessed:</span>
+                                <span class="detail-value" id="cell-accessed"></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Size:</span>
+                                <span class="detail-value" id="cell-size"></span>
+                            </div>
+                            <div class="detail-row full">
+                                <span class="detail-label">Value:</span>
+                                <pre id="cell-value" class="detail-code"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Task Manager View -->
+        <section id="tasks-view" class="view">
+            <h2>Task Manager</h2>
+            <div class="task-form-container">
+                <h3>Create New Task</h3>
+                <form id="task-form">
+                    <div class="form-row">
+                        <label for="task-title">Title:</label>
+                        <input type="text" id="task-title" required>
+                    </div>
+                    <div class="form-row">
+                        <label for="task-description">Description:</label>
+                        <textarea id="task-description" rows="4" required></textarea>
+                    </div>
+                    <div class="form-row">
+                        <label for="task-priority">Priority:</label>
+                        <select id="task-priority">
+                            <option value="Low">Low</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="High">High</option>
+                            <option value="Critical">Critical</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label for="task-tags">Tags (comma separated):</label>
+                        <input type="text" id="task-tags">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="primary-btn">Submit Task</button>
+                        <button type="reset" class="secondary-btn">Clear</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="task-list-container">
+                <h3>Active Tasks</h3>
+                <table class="tasks-table full-width">
+                    <thead>
+                        <tr>
+                            <th>Task ID</th>
+                            <th>Title</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>T-1001</td>
+                            <td>Research quantum computing</td>
+                            <td>High</td>
+                            <td><span class="status completed">Completed</span></td>
+                            <td>Apr 2, 2025 14:22:05</td>
+                            <td>
+                                <button class="action-btn view-btn" data-task-id="T-1001">View</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="task-detail-modal" id="task-detail-modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Task Details</h3>
+                        <button class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="detail-row">
+                            <span class="detail-label">Task ID:</span>
+                            <span class="detail-value" id="detail-task-id"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Title:</span>
+                            <span class="detail-value" id="detail-task-title"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Description:</span>
+                            <div class="detail-value" id="detail-task-description"></div>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Status:</span>
+                            <span class="detail-value" id="detail-task-status"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Priority:</span>
+                            <span class="detail-value" id="detail-task-priority"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Created:</span>
+                            <span class="detail-value" id="detail-task-created"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Completed:</span>
+                            <span class="detail-value" id="detail-task-completed"></span>
+                        </div>
+                        
+                        <h4>Subtasks</h4>
+                        <table class="subtasks-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Title</th>
+                                    <th>Status</th>
+                                    <th>Output</th>
+                                </tr>
+                            </thead>
+                            <tbody id="subtasks-list">
+                                <!-- Subtasks will be inserted here -->
+                            </tbody>
+                        </table>
+                        
+                        <h4>Summary</h4>
+                        <div id="task-summary" class="task-summary"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Documentation View -->
+        <section id="docs-view" class="view">
+            <h2>Framework Documentation</h2>
+            <div class="docs-container">
+                <div class="docs-sidebar">
+                    <div class="docs-nav">
+                        <h3>Navigation</h3>
+                        <ul>
+                            <li><a href="#overview" class="active">Overview</a></li>
+                            <li><a href="#getting-started">Getting Started</a></li>
+                            <li><a href="#memory-system">Memory System</a></li>
+                            <li><a href="#agents">Agents</a></li>
+                            <li><a href="#task-processing">Task Processing</a></li>
+                            <li><a href="#web-integration">Web Integration</a></li>
+                            <li><a href="#advanced">Advanced Topics</a></li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="docs-content">
+                    <section id="overview" class="doc-section active">
+                        <h3>Overview</h3>
+                        <p>The Agentic AI Framework is a modern, type-safe framework for building AI agents using Scala and ZIO. It provides robust features for agent definition, memory management, and task processing.</p>
+                        
+                        <h4>Key Features</h4>
+                        <ul>
+                            <li><strong>Type-safe agent definitions</strong> - Leveraging Scala's type system for compile-time guarantees</li>
+                            <li><strong>Built on ZIO</strong> - For robust concurrent and asynchronous programming</li>
+                            <li><strong>Stream-based message processing</strong> - Efficient handling of data streams</li>
+                            <li><strong>State management</strong> - Functional approach to state handling</li>
+                            <li><strong>Memory system</strong> - Sophisticated memory management with persistence options</li>
+                        </ul>
+                    </section>
+                    
+                    <!-- Additional documentation sections would go here -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <p>Agentic AI Framework &copy; 2025</p>
+            <p>A modern, type-safe framework for building, debugging, and visualizing AI agents</p>
+        </div>
+    </footer>
+
+    <script src="assets/js/dashboard.js"></script>
+</body>
+</html>

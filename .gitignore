@@ -1,0 +1,75 @@
+# Scala
+*.class
+*.log
+*.ctxt
+.metals/
+.bloop/
+project/metals.sbt
+project/.bloop/
+.bsp/
+.history
+.cache
+.lib/
+dist/*
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+.history
+.cache
+.lib/
+
+# SBT
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+.history
+.cache
+.lib/
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.swp
+*~
+.#*
+.~lock.*
+*.db
+*.tmp
+*.temp
+
+# Test & Coverage
+.coverage
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.pytest_cache/
+tmp/
+temp/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Backup files
+*.bak

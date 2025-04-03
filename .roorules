@@ -1,0 +1,86 @@
+# Roo Rules for Agentic AI Framework
+
+## Core Principles
+
+1. Always check the project goals in `goals.md` before starting any task
+2. Ensure all code aligns with the mathematical rigor and category theory foundations
+3. Maintain functional purity and ZIO-based effects management
+4. Follow Scala best practices and idiomatic functional programming patterns
+
+## Build and Test Requirements
+
+1. Every change must compile successfully with `sbt compile`
+2. All tests must pass with `sbt test`
+3. Run integration tests with `sbt integrationTest` when modifying external integrations
+4. Verify vertex connectivity with `sbt testVertexConnection` after LLM-related changes
+
+## Quality Assurance
+
+1. Always test new features using both automated tests and manual verification
+2. Use browser testing for UI components and web applications
+3. Validate API integrations with real endpoints and error cases
+4. Check for proper error handling and edge cases in all code
+
+## Code Style and Structure
+
+1. Follow functional programming principles with immutability and referential transparency
+2. Organize code using the defined module structure
+3. Use appropriate type-level programming techniques for static verification
+4. Maintain comprehensive documentation with examples
+
+## Documentation Requirements
+
+1. Update relevant documentation when implementing new features
+2. Include detailed API documentation with examples
+3. Add diagrams where appropriate to illustrate complex concepts
+4. Cross-reference implementation with theoretical foundations
+
+## Development Workflow
+
+1. Implement MVP features first, then iterate with enhancements
+2. Break complex tasks into smaller, manageable sub-tasks
+3. Create tests before or alongside implementation code
+4. Regularly validate against the project goals and vision
+
+## Verification Steps
+
+Before submitting any code changes:
+
+1. Ensure all builds pass: `sbt compile`
+2. Run all unit tests: `sbt test`
+3. Verify integration tests if applicable: `sbt integrationTest`
+4. Test in browser when relevant
+5. Check for compatibility with existing components
+
+## Claude Integration Specific Rules
+
+1. Always verify Claude/Vertex AI connectivity after changes
+2. Test with real API endpoints when possible
+3. Include proper error handling for API rate limits and failures
+4. Ensure streaming implementations handle backpressure correctly
+
+## Self-Improvement Features
+
+1. Analyze code for optimization opportunities
+2. Look for patterns that could be abstracted into reusable components
+3. Consider if new features could benefit from self-coding capabilities
+4. Align implementation with long-term self-evolution goals
+
+## Theoretical Alignment
+
+1. Ensure implementations follow category theory principles
+2. Use appropriate monads, functors, and other algebraic structures
+3. Maintain mathematical rigor in compositional patterns
+4. Document theoretical foundations of complex implementations
+
+## Testing Matrix
+
+| Feature Type | Required Tests |
+|--------------|---------------|
+| Core | Unit, Property-based |
+| LLM Integration | Unit, Integration, API |
+| Memory Systems | Unit, Property-based, Performance |
+| UI Components | Unit, Integration, Browser |
+| Agents | Unit, Behavioral, System |
+
+These rules should be followed for all contributions to ensure high quality, maintainable code that aligns with the project's ambitious vision.
