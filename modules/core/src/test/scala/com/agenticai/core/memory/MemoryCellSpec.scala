@@ -48,6 +48,8 @@ object MemoryCellSpec extends ZIOSpecDefault {
         cell <- MemoryCell.make("initial")
         initialMetadata <- cell.metadata
         _ <- TestClock.adjust(1.second)
+        // Sleep a tiny bit to ensure clock adjustments have propagated
+        _ <- ZIO.sleep(Duration.fromMillis(10))
         _ <- cell.write("updated")
         updatedMetadata <- cell.metadata
       } yield assertTrue(

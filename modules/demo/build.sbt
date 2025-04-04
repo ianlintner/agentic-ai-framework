@@ -24,9 +24,15 @@ libraryDependencies ++= Seq(
   "dev.zio" %% "zio" % zioVersion,
   "dev.zio" %% "zio-streams" % zioVersion,
 
-  // Google Cloud dependencies for Vertex AI  
+  // Google Cloud dependencies for Vertex AI
   "com.google.cloud" % "google-cloud-aiplatform" % googleCloudVersion,
-  "com.google.auth" % "google-auth-library-oauth2-http" % googleAuthVersion
+  "com.google.auth" % "google-auth-library-oauth2-http" % googleAuthVersion,
+  
+  // Terminal visualization and ANSI colors
+  "com.lihaoyi" %% "fansi" % "0.4.0",
+  
+  // Depend on our own core module for circuit patterns
+  "com.agenticai" %% "agentic-ai-core" % "0.1.0-SNAPSHOT"
 )
 
 // Use Coursier for dependency resolution (modern SBT default)

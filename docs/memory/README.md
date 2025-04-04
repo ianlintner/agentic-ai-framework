@@ -52,6 +52,49 @@ for {
 } yield ()
 ```
 
+### Compressed Memory Cells
+
+The system provides memory cells with compression capabilities to reduce memory usage:
+
+```scala
+// String serializer/deserializer for compression
+val serializer: String => Array[Byte] = _.getBytes(StandardCharsets.UTF_8)
+val deserializer: Array[Byte] => String = bytes => new String(bytes, StandardCharsets.UTF_8)
+
+// Create a compressed memory cell with GZIP compression (default)
+val compressedCell = CompressedMemoryCell.make(
+  "Initial large string value...",
+  serializer,
+  deserializer
+)
+
+// Create a compressed cell with custom compression strategy
+val customCompressedCell = CompressedMemoryCell.makeWithStrategy(
+  "Initial large string value...",
+  GzipCompressionStrategy,  // You can implement your own CompressionStrategy
+  serializer,
+  deserializer,
+  2048  // Custom compression threshold (in bytes)
+)
+
+// Get compression statistics
+for {
+  stats <- compressedCell.getCompressionStats
+  _ <- ZIO.foreach(stats) { s =>
+    ZIO.succeed(println(s"Original: ${s.originalSize} bytes, Compressed: ${s.compressedSize} bytes, Ratio: ${s.compressionRatio}:1"))
+  }
+} yield ()
+
+// Force compression even for small data
+compressedCell.forceCompress
+```
+
+Compressed memory cells provide the same operations as normal memory cells, but internally manage compression of the data:
+
+- Small values (below the threshold, default 1KB) are not compressed
+- Compression statistics are tracked (original size, compressed size, ratio)
+- Multiple compression strategies are supported (GZIP by default, extensible)
+
 ## Agent Integration
 
 ### Basic Agent Memory
@@ -131,6 +174,47 @@ class CommunicatingAgent extends BaseAgent {
 ```
 
 ## Advanced Patterns
+
+### Memory Optimization with Compression
+
+For memory-intensive applications, compression can significantly reduce memory usage:
+
+```scala
+class MemoryOptimizedAgent extends BaseAgent {
+  // Custom serializers for domain objects
+  private val serializer: DomainObject => Array[Byte] = obj => {
+    // Use a library like Jackson, Circe, etc. for serialization
+    // This is just a simplified example
+    obj.toString.getBytes(StandardCharsets.UTF_8)
+  }
+  
+  private val deserializer: Array[Byte] => DomainObject = bytes => {
+    // Deserialize bytes back to domain object
+    DomainObject.fromString(new String(bytes, StandardCharsets.UTF_8))
+  }
+  
+  def processLargeData(data: List[DomainObject]): ZIO[Any, AgentError, Result] = {
+    for {
+      // Store large data with compression
+      compressedCell <- CompressedMemoryCell.make(
+        data,
+        serializer,
+        deserializer,
+        512 // Lower compression threshold for more aggressive compression
+      )
+      
+      // Process data in chunks to minimize memory usage
+      result <- processDataInChunks(compressedCell)
+      
+      // Get compression stats for monitoring/logging
+      stats <- compressedCell.getCompressionStats
+      _ <- ZIO.foreach(stats) { s => 
+        ZIO.succeed(println(s"Memory savings: ${s.originalSize - s.compressedSize} bytes (${s.compressionRatio}:1 ratio)"))
+      }
+    } yield result
+  }
+}
+```
 
 ### Waiting for Updates
 
@@ -219,9 +303,11 @@ class CoordinatedAgents extends BaseAgent {
    - Clean up old messages
 
 4. **Performance**
-   - Use appropriate cell types for data size
+   - Use compressed cells for large data
+   - Monitor compression ratios for optimization
+   - Choose appropriate compression thresholds
+   - Use memory cells appropriate for data size
    - Implement cleanup strategies
-   - Monitor memory usage
 
 ## Integration with Agent Framework
 
@@ -255,9 +341,8 @@ class MemoryAwareChatAgent extends ChatAgent {
 ## Future Enhancements
 
 1. **Advanced Memory Features**
-   - Memory compression
    - Automatic cleanup
-   - Memory usage optimization
+   - Memory usage monitoring
 
 2. **Communication Patterns**
    - Pub/sub system
@@ -272,4 +357,4 @@ class MemoryAwareChatAgent extends ChatAgent {
 4. **Integration Features**
    - Database integration
    - Cache integration
-   - Distributed storage 
+   - Distributed storage

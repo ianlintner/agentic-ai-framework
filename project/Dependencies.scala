@@ -3,7 +3,7 @@ import sbt._
 object Dependencies {
   // Versions
   val zioVersion = "2.1.14"
-  val zioConfigVersion = "4.0.3"
+  val zioConfigVersion = "4.0.3" // REQUIRES 4.x.x or it won't work with scala 3.x.x
   val zioLoggingVersion = "2.2.3"
   val zioMetricsVersion = "2.3.1"
   val zioHttpVersion = "3.0.0-RC4"
@@ -44,9 +44,12 @@ object Dependencies {
   val zioConfigYaml = "dev.zio" %% "zio-config-yaml" % zioConfigVersion
   val zioTelemetry = "dev.zio" %% "zio-opentelemetry" % zioTelemetryVersion
 
+  // Google Cloud dependencies
   val vertexAi = "com.google.cloud" % "google-cloud-aiplatform" % vertexAiVersion
   val googleCloud = "com.google.cloud" % "google-cloud-core" % googleCloudVersion
   val googleAuth = "com.google.auth" % "google-auth-library-oauth2-http" % googleAuthVersion
+  val googleProtoAiPlatform = "com.google.api.grpc" % "proto-google-cloud-aiplatform-v1" % vertexAiVersion
+  val googleGax = "com.google.api" % "gax" % "2.23.0"
   val scalaTest = "org.scalatest" %% "scalatest" % scalaTestVersion
   val logback = "ch.qos.logback" % "logback-classic" % logbackVersion
   val logstashEncoder = "net.logstash.logback" % "logstash-logback-encoder" % logstashLogbackEncoder
@@ -58,35 +61,71 @@ object Dependencies {
   val openTelemetrySemconv = "io.opentelemetry.semconv" % "opentelemetry-semconv" % openTelemetrySemconvVersion
   val tapir = "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion
 
-  // Dependencies
-  val commonDependencies = Seq(
+  // Core dependencies - minimal set needed for basic functionality
+  val coreDependencies = Seq(
     zio,
-    zioTest % Test,
-    zioTestSbt % Test,
     zioStreams,
     zioLogging,
-    zioMetrics,
-    zioHttp,
-    zioJson,
-    zioPrelude,
-    zioSchema,
-    zioConfig,
-    zioConfigTypesafe,
-    zioConfigMagnolia,
-    zioConfigYaml,
-    zioTelemetry,
+    logback
+  )
+  
+  // LLM integration dependencies
+  val llmDependencies = Seq(
     vertexAi,
     googleCloud,
     googleAuth,
+    googleProtoAiPlatform,
+    googleGax
+  )
+  
+  // Testing dependencies
+  val testDependencies = Seq(
+    zioTest % Test,
+    zioTestSbt % Test,
     scalaTest % Test,
-    logback,
-    logstashEncoder,
+    testContainers % Test
+  )
+  
+  // Web dependencies
+  val webDependencies = Seq(
+    zioHttp,
+    zioJson,
+    tapir
+  )
+  
+  // Database dependencies
+  val dbDependencies = Seq(
     quill,
     postgresql,
-    flyway,
-    testContainers % Test,
+    flyway
+  )
+  
+  // Monitoring dependencies
+  val monitoringDependencies = Seq(
+    zioMetrics,
+    zioTelemetry,
     openTelemetry,
     openTelemetrySemconv,
-    tapir
+    logstashEncoder
+  )
+  
+  // Configuration dependencies
+  val configDependencies = Seq(
+    zioConfig,
+    zioConfigTypesafe,
+    zioConfigMagnolia,
+    zioConfigYaml
+  )
+  
+  // All common dependencies - for backward compatibility
+  val commonDependencies = coreDependencies ++
+                          testDependencies ++
+                          llmDependencies ++
+                          webDependencies ++
+                          dbDependencies ++
+                          monitoringDependencies ++
+                          configDependencies ++ Seq(
+    zioPrelude,
+    zioSchema
   )
 }

@@ -1,123 +1,154 @@
 # Circuit Pattern Diagrams
 
-This document provides visual representations of the circuit patterns implemented in our framework, inspired by Factorio's circuit networks.
+This document contains visual representations of how Factorio circuit patterns are implemented in our Agentic AI framework.
 
-## Memory Cell
+## Memory Cell Comparison
+
+```mermaid
+flowchart TB
+    subgraph Factorio["Factorio Memory Cell"]
+        F_Input[Input Signal] --> F_DC[Decider Combinator<br>Output if condition is true]
+        F_DC -->|Output| F_Output[Output Signal]
+        F_DC -->|Feedback Loop| F_DC
+    end
+    
+    subgraph AgenticAI["Agentic AI Memory Cell"]
+        A_Input[Input Value] --> A_Cell[MemoryCell<br>Store & Retrieve Values]
+        A_Cell --> A_Output[Output Value]
+        A_Cell -->|Internal State| A_Cell
+    end
+    
+    Factorio -.->|Inspired| AgenticAI
+```
+
+## Clock Pattern
+
+```mermaid
+flowchart TB
+    subgraph Factorio["Factorio Clock"]
+        F_CC[Constant Combinator] -->|"+1" every tick| F_MC[Memory Cell]
+        F_MC --> F_DC[Decider Combinator<br>Reset when T > limit]
+        F_DC -->|Reset Signal| F_MC
+        F_MC -->|"T value"| F_Output[Clock Output]
+    end
+    
+    subgraph AgenticAI["Agentic AI Clock"]
+        A_Tick[Tick Method] -->|Increment Counter| A_Counter[Internal Counter]
+        A_Counter --> A_Reset[Reset Logic<br>When counter > limit]
+        A_Reset -->|Reset if needed| A_Counter
+        A_Counter -->|Current Value| A_Output[Clock Output]
+    end
+    
+    Factorio -.->|Inspired| AgenticAI
+```
+
+## Signal Processing Pipeline
 
 ```mermaid
 flowchart LR
-    Input --> |"set(value)"| MemoryCell["Memory Cell"]
-    MemoryCell --> |"get()"| Output
-    MemoryCell --> |"feedback"| MemoryCell
+    subgraph Factorio["Factorio Signal Processing"]
+        F_Input[Input Signals] --> F_Filter[Filter Combinators]
+        F_Filter --> F_Transform[Transform Combinators]
+        F_Transform --> F_Output[Output Signals]
+    end
+    
+    subgraph AgenticAI["Agentic AI Pipeline"]
+        A_Input[Input Data] --> A_Filter[Filter Agents]
+        A_Filter --> A_Transform[Transform Agents]
+        A_Transform --> A_Output[Output Data]
+    end
+    
+    Factorio -.->|Inspired| AgenticAI
 ```
-
-The Memory Cell maintains state between operations, similar to how Factorio's memory cells hold signals across multiple ticks.
-
-## Transform (Arithmetic Combinator)
-
-```mermaid
-flowchart LR
-    Input --> Agent["Agent (f)"] --> |"result"| Transform["Transform (g)"] --> Output
-```
-
-Transforms the output of an agent, analogous to an Arithmetic Combinator that takes signals and outputs a modified version.
-
-## Filter (Decider Combinator)
-
-```mermaid
-flowchart LR
-    Input --> Agent["Agent (process)"] --> |"result"| Filter["Filter (predicate)"]
-    Filter --> |"Some(result)"| Output
-    Filter --> |"None"| NoOutput["No Output"]
-```
-
-Conditionally passes output based on a predicate, similar to a Decider Combinator that only lets signals through if they meet a condition.
-
-## Pipeline
-
-```mermaid
-flowchart LR
-    Input --> FirstAgent["First Agent"] --> |"intermediate result"| SecondAgent["Second Agent"] --> Output
-```
-
-Connects agents in sequence, like a production line where the output of one stage becomes the input to the next.
-
-## Parallel Processing
-
-```mermaid
-flowchart LR
-    Input --> AgentA["Agent A"] --> |"result A"| Combine
-    Input --> AgentB["Agent B"] --> |"result B"| Combine["Combine (A, B)"]
-    Combine --> Output
-```
-
-Processes input through multiple paths simultaneously and combines the results, similar to splitting a belt in Factorio and recombining the processed items.
-
-## Shift Register
-
-```mermaid
-flowchart LR
-    Input --> Initial["Initial Agent"] --> |"stage 0"| Stage1["Stage 1"] --> |"stage 1"| Stage2["Stage 2"] --> |"stage 2"| StageN["Stage N"] --> Output
-```
-
-Applies a sequence of transformations to data, similar to Factorio's shift register that pushes signals through a sequence of memory cells.
-
-## Clock
-
-```mermaid
-flowchart LR
-    Tick["tick()"] --> |"increment"| Counter["Current Tick"] 
-    Counter --> |"currentTick % interval == 0"| PulseOutput["Pulse Output"]
-    Counter --> |"current tick"| TickOutput["Tick Value"]
-```
-
-Generates regular pulses, like Factorio's clock circuits that drive timing operations.
-
-## Feedback Loop
-
-```mermaid
-flowchart LR
-    Input --> Agent["Agent"] --> |"result"| Output
-    Agent --> |"iterations"| Agent
-```
-
-Applies an operation repeatedly to its own output, like a recursive circuit in Factorio.
-
-## Ring Buffer
-
-```mermaid
-flowchart LR
-    Input --> |"write(value)"| Buffer["Ring Buffer"] 
-    Buffer --> |"read()"| Output
-    Buffer --> |"circular storage"| Buffer
-```
-
-Creates a continuous loop of memory cells, similar to how Factorio's belt printers loop data around a circuit.
 
 ## Bit Packing
 
 ```mermaid
-flowchart LR
-    Values["Multiple Values"] --> |"pack"| PackedValue["Single Packed Value"]
-    PackedValue --> |"unpack"| UnpackedValues["Multiple Values"]
+flowchart TB
+    subgraph Factorio["Factorio Bit Packing"]
+        F_Input["Multiple Input Signals<br>(Value 1, Value 2, Value 3)"] 
+        F_Input --> F_Pack["Arithmetic Combinators<br>Shift and Combine"]
+        F_Pack --> F_Packed["Single Packed Signal"]
+        F_Packed --> F_Unpack["Arithmetic Combinators<br>Shift and Mask"]
+        F_Unpack --> F_Output["Multiple Output Signals<br>(Value 1, Value 2, Value 3)"]
+    end
+    
+    subgraph AgenticAI["Agentic AI Bit Packing"]
+        A_Input["Multiple Values<br>(Value 1, Value 2, Value 3)"] 
+        A_Input --> A_Pack["BitPacking.packInts()"]
+        A_Pack --> A_Packed["Single Packed Long Value"]
+        A_Packed --> A_Unpack["BitPacking.unpackInts()"]
+        A_Unpack --> A_Output["Multiple Values<br>(Value 1, Value 2, Value 3)"]
+    end
+    
+    Factorio -.->|Inspired| AgenticAI
 ```
 
-Compresses multiple values into a single value, like how Factorio's belt printers encode multiple pixel values into a single signal.
-
-## Complete Processing System
+## Text Processing Demo Architecture
 
 ```mermaid
-flowchart TD
-    Input --> InputStage["Input Stage"]
-    InputStage --> |"transform"| Processing["Processing Stage"]
-    Processing --> |"state"| MemoryCell["Memory Cell"]
-    MemoryCell --> |"feedback"| Processing
-    Processing --> |"filter"| Condition{"Condition Met?"}
-    Condition --> |"Yes"| OutputStage["Output Stage"]
-    Condition --> |"No"| Processing
-    OutputStage --> Output
+flowchart TB
+    Input["Input Text"] --> Tokenizer["Tokenizer Agent"]
+    Tokenizer --> StopWordsFilter["Stop Words Filter Agent"]
+    StopWordsFilter --> Counter["Word Counter Agent"]
+    Counter --> FrequencyUpdater["Frequency Updater Agent"]
+    FrequencyUpdater --> TopWordsFinder["Top Words Finder Agent"]
+    TopWordsFinder --> Formatter["Formatter Agent"]
+    Formatter --> Output["Formatted Results"]
+    
+    WordCountMemory["Word Count<br>Memory Cell"] -.->|Reads from| FrequencyUpdater
+    FrequencyUpdater -->|Updates| WordCountMemory
+    WordCountMemory -.->|Reads from| TopWordsFinder
+    
+    TopWordsMemory["Top Words<br>Memory Cell"] -.->|Reads from| TopWordsFinder
+    TopWordsFinder -->|Updates| TopWordsMemory
+    
+    subgraph Pipeline["Agent Pipelines"]
+        Pipeline1["processWords = pipeline(tokenizer, stopWordsFilter)"]
+        Pipeline2["updateFrequency = pipeline(counter, wordFrequencyUpdater)"]
+        Pipeline3["findTopWords = pipeline(topWordsFinder, formatter)"]
+        Pipeline4["completePipeline = pipeline(pipeline1, findTopWords)"]
+    end
 ```
 
-A full processing system combining multiple circuit patterns, similar to complex Factorio circuit networks that combine multiple components.
+## Latch Pattern
 
-These diagrams illustrate how our circuit patterns translate the concepts from Factorio's visual programming system into functional programming constructs in our framework.
+```mermaid
+flowchart TB
+    subgraph Factorio["Factorio Latch"]
+        F_Set["Set Signal"] --> F_SR["SR Latch<br>(Set-Reset Latch)"]
+        F_Reset["Reset Signal"] --> F_SR
+        F_SR --> F_Output["Output Signal"]
+    end
+    
+    subgraph AgenticAI["Agentic AI Latch"]
+        A_Set["Set Value"] --> A_Cell["Memory Cell with<br>Conditional Logic"]
+        A_Reset["Reset Condition"] --> A_Cell
+        A_Cell --> A_Output["Output Value"]
+    end
+    
+    Factorio -.->|Inspired| AgenticAI
+```
+
+## Ring Buffer / Shift Register
+
+```mermaid
+flowchart LR
+    subgraph Factorio["Factorio Shift Register"]
+        F_Input["Input Signal"] --> F_Cell1["Memory Cell 1"]
+        F_Cell1 --> F_Cell2["Memory Cell 2"]
+        F_Cell2 --> F_Cell3["Memory Cell 3"]
+        F_Cell3 --> F_Output["Output Signal"]
+        F_Clock["Clock Signal"] -->|Triggers Shift| F_Cell1
+        F_Clock -->|Triggers Shift| F_Cell2
+        F_Clock -->|Triggers Shift| F_Cell3
+    end
+    
+    subgraph AgenticAI["Agentic AI Sequential Processing"]
+        A_Input["Input Data"] --> A_Agent1["Agent 1<br>First Transform"]
+        A_Agent1 --> A_Agent2["Agent 2<br>Second Transform"]
+        A_Agent2 --> A_Agent3["Agent 3<br>Third Transform"]
+        A_Agent3 --> A_Output["Output Data"]
+    end
+    
+    Factorio -.->|Inspired| AgenticAI

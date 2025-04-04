@@ -2,7 +2,7 @@ package com.agenticai.core.memory
 
 import zio._
 import zio.stream._
-import java.time.Instant
+import java.time.{Duration => JavaDuration, Instant}
 import java.io.{File, FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream, Serializable}
 import scala.collection.concurrent.TrieMap
 import scala.util.{Try, Success, Failure}
@@ -45,6 +45,8 @@ class PersistentMemorySystem(baseDir: File, runtime: Runtime[Any]) extends Memor
   private val tagIndex = new TrieMap[String, Set[String]]()
   private val cellFiles = new TrieMap[String, File]()
   private val cellIdMap = new TrieMap[MemoryCell[_], String]()
+  private val cleanupStrategies = new TrieMap[String, CleanupStrategy]()
+  private var cleanupFiber: Option[Fiber.Runtime[Throwable, Unit]] = None
 
   // Create base directory if it doesn't exist
   if (!baseDir.exists()) {
@@ -187,6 +189,79 @@ class PersistentMemorySystem(baseDir: File, runtime: Runtime[Any]) extends Memor
       }
     } yield ()
   }
+  
+  override def registerCleanupStrategy(strategy: CleanupStrategy): ZIO[Any, MemoryError, Unit] = {
+    ZIO.succeed {
+      cleanupStrategies.put(strategy.name, strategy)
+    }
+  }
+  
+  override def unregisterCleanupStrategy(strategyName: String): ZIO[Any, MemoryError, Unit] = {
+    ZIO.succeed {
+      cleanupStrategies.remove(strategyName)
+    }
+  }
+  
+  override def getCleanupStrategies: ZIO[Any, MemoryError, List[CleanupStrategy]] = {
+    ZIO.succeed {
+      cleanupStrategies.values.toList
+    }
+  }
+  
+  override def runCleanup: ZIO[Any, MemoryError, Int] = {
+    for {
+      strategies <- getCleanupStrategies
+      results <- ZIO.foreach(strategies)(runCleanup)
+    } yield results.sum
+  }
+  
+  override def runCleanup(strategy: CleanupStrategy): ZIO[Any, MemoryError, Int] = {
+    for {
+      allCells <- getAllCells
+      cellsToCleanup <- ZIO.filter(allCells.toList)(strategy.shouldCleanup)
+      _ <- ZIO.foreach(cellsToCleanup)(_.empty)
+      // For persistent cells, we also need to save the changes to disk
+      _ <- ZIO.foreach(cellsToCleanup) { cell =>
+        ZIO.succeed {
+          cellIdMap.get(cell).foreach { id =>
+            Unsafe.unsafe { implicit unsafe =>
+              runtime.unsafe.run(saveCell(id, cell)).getOrThrow()
+            }
+          }
+        }
+      }
+    } yield cellsToCleanup.size
+  }
+  
+  override def enableAutomaticCleanup(interval: JavaDuration): ZIO[Any, MemoryError, Unit] = {
+    for {
+      _ <- disableAutomaticCleanup
+      fiber <- scheduleCleanup(interval).fork
+      _ <- ZIO.succeed {
+        cleanupFiber = Some(fiber)
+      }
+    } yield ()
+  }
+  
+  override def disableAutomaticCleanup: ZIO[Any, MemoryError, Unit] = {
+    for {
+      _ <- ZIO.foreachDiscard(cleanupFiber)(_.interrupt)
+      _ <- ZIO.succeed {
+        cleanupFiber = None
+      }
+    } yield ()
+  }
+  
+  private def scheduleCleanup(interval: JavaDuration): ZIO[Any, MemoryError, Unit] = {
+    val intervalDuration = zio.Duration.fromMillis(interval.toMillis)
+    val schedule = Schedule.fixed(intervalDuration)
+    
+    runCleanup
+      .tap(count => ZIO.logInfo(s"Automatic cleanup removed $count cells"))
+      .repeat(schedule)
+      .unit
+      .catchAll(e => ZIO.logError(s"Error during automatic cleanup: ${e.getMessage}"))
+  }
 
   private def saveCell[A](id: String, cell: MemoryCell[A]): ZIO[Any, MemoryError, Unit] = {
     for {
@@ -325,5 +400,50 @@ object PersistentMemorySystem {
       runtime <- ZIO.runtime[Any]
       system = new PersistentMemorySystem(baseDir, runtime)
     } yield system
+  }
+  
+  /**
+   * Create a new persistent memory system with automatic cleanup
+   */
+  def makeWithAutomaticCleanup(
+    baseDir: File,
+    interval: JavaDuration,
+    strategies: CleanupStrategy*
+  ): ZIO[Any, MemoryError, PersistentMemorySystem] = {
+    for {
+      system <- make(baseDir)
+      _ <- ZIO.foreach(strategies)(system.registerCleanupStrategy)
+      _ <- system.enableAutomaticCleanup(interval)
+    } yield system
+  }
+  
+  /**
+   * Create a time-based cleanup persistent memory system
+   */
+  def makeWithTimeBasedCleanup(
+    baseDir: File,
+    maxAge: JavaDuration,
+    interval: JavaDuration = java.time.Duration.ofMinutes(5)
+  ): ZIO[Any, MemoryError, PersistentMemorySystem] = {
+    makeWithAutomaticCleanup(
+      baseDir,
+      interval,
+      CleanupStrategy.timeBasedAccess(maxAge)
+    )
+  }
+  
+  /**
+   * Create a size-based cleanup persistent memory system
+   */
+  def makeWithSizeBasedCleanup(
+    baseDir: File,
+    maxSize: Long,
+    interval: JavaDuration = java.time.Duration.ofMinutes(5)
+  ): ZIO[Any, MemoryError, PersistentMemorySystem] = {
+    makeWithAutomaticCleanup(
+      baseDir,
+      interval,
+      CleanupStrategy.sizeBasedCleanup(maxSize)
+    )
   }
 }
