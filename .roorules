@@ -84,3 +84,32 @@ Before submitting any code changes:
 | Agents | Unit, Behavioral, System |
 
 These rules should be followed for all contributions to ensure high quality, maintainable code that aligns with the project's ambitious vision.
+
+## Temporal Testing with ZIO TestClock
+
+Proper testing of time-dependent functionality is critical for reliable systems. Follow these guidelines:
+
+1. **TestClock Fundamentals**
+   - TestClock doesn't advance automatically - it only moves when explicitly instructed
+   - Scheduled operations remain suspended until the TestClock advances past their time
+   - Time advancement must be explicitly managed in tests
+
+2. **Required TestClock Patterns**
+   - Always use `ZIO.clockWith(_.instant)` instead of `Instant.now()` in production code
+   - Fork scheduled operations in a separate fiber before testing them
+   - Use `TestClock.adjust(duration)` to advance time in controlled increments
+   - Include a small `ZIO.sleep` after adjusting the clock to allow effects to complete
+   - Verify state changes after each clock adjustment
+
+3. **TestClock Implementation Validation**
+   - Verify that temporal tests pass consistently without flakiness
+   - Ensure tests are not affected by system load or execution environment
+   - Confirm that scheduled operations execute at the expected times
+   - Test boundary conditions like zero-time delays and very long delays
+
+4. **Common TestClock Anti-patterns to Avoid**
+   - Mixing real-time and test-time in the same test
+   - Scheduling operations without forking them first
+   - Using fixed sleeps instead of TestClock adjustments
+   - Expecting operations to complete without advancing the clock
+   - Forgetting to allow suspended effects to complete after clock adjustment

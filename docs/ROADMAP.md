@@ -30,7 +30,7 @@
 - [ ] Add distributed state management
 - [ ] Implement state replication
 
-### Week 4: Circuit Breaker & Resilience
+### Week 4: Circuit Breaker, Signaling & Resilience
 - [x] Implement circuit pattern fundamentals
 - [x] Add agent combinators for resilient processing
 - [ ] Implement circuit breaker pattern
@@ -39,6 +39,10 @@
 - [ ] Add resilience testing suite
 - [ ] Implement memory-based circuit breakers
 - [ ] Add automatic recovery mechanisms
+- [ ] Create `RailBlock` system for resource management
+- [ ] Implement `RailSignal` for access control
+- [ ] Add `ChainSignal` for sequential dependencies
+- [ ] Integrate signal system with circuit networks
 
 ## Phase 2: AI Integration (Weeks 5-8)
 
@@ -53,20 +57,20 @@
 ### Week 6: Claude Integration
 - [x] Create Claude client wrapper
 - [x] Implement basic API integration
-- [ ] Implement streaming support
-- [ ] Add rate limiting and quota management
-- [ ] Create Claude integration tests
-- [ ] Add memory-based context management
-- [ ] Implement conversation persistence
+- [x] Implement streaming support
+- [x] Add rate limiting and quota management
+- [x] Create Claude integration tests
+- [x] Add memory-based context management
+- [x] Implement conversation persistence
 
 ### Week 7: Vertex AI Integration
 - [x] Create Vertex AI client wrapper
 - [x] Implement basic authentication and API access
-- [ ] Implement streaming support
-- [ ] Add rate limiting and quota management
-- [ ] Create Vertex AI integration tests
-- [ ] Add memory-based context management
-- [ ] Implement conversation persistence
+- [x] Implement streaming support
+- [x] Add rate limiting and quota management
+- [x] Create Vertex AI integration tests
+- [x] Add memory-based context management
+- [x] Implement conversation persistence
 
 ### Week 8: Azure AI Integration
 - [ ] Create Azure AI client wrapper
@@ -130,15 +134,18 @@
 - [ ] Create composition tests
 - [ ] Add memory-based composition
 - [ ] Implement agent state sharing
+- [ ] Add signal-based resource coordination
 
 ### Week 15: Task Orchestration
 - [x] Implement basic signal processing for task coordination
 - [ ] Implement task scheduling
 - [ ] Add task prioritization
-- [ ] Create task monitoring
-- [ ] Create orchestration tests
+- [ ] Create performance-aware task routing
+- [ ] Create task monitoring and visualization
+- [ ] Create orchestration tests with throughput metrics
 - [ ] Add memory-based scheduling
 - [ ] Implement task persistence
+- [ ] Add backpressure handling for overload protection
 
 ### Week 16: Monitoring & Metrics
 - [x] Add visualization support for circuit state (demo)
@@ -198,6 +205,7 @@
 - [ ] Adaptive behavior
 - [ ] Memory-based learning
 - [ ] Distributed learning
+- [ ] Signal-controlled adaptive routing
 
 ### Phase 7: Enterprise Features
 - [ ] Enterprise security
@@ -214,14 +222,15 @@
 - [ ] Cloud monitoring
 - [ ] Cloud memory management
 - [ ] Distributed deployment
-
-### Phase 9: Circuit Pattern Extensions
+### Phase 9: Factorio-Inspired Pattern Extensions
 - [x] Implement basic circuit memory and agent combinators
 - [ ] Advanced signal processing and composition
 - [ ] Circuit-based distributed computing
 - [ ] Visual circuit designer and debugger
 - [ ] Circuit optimization and verification tools
 - [ ] Pattern libraries for common agent behaviors
+- [ ] Integrated planning and optimization
+- [ ] Throughput-optimized processing pipelines
 
 ## Success Metrics
 

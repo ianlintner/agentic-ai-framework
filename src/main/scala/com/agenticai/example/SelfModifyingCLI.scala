@@ -143,16 +143,20 @@ object SelfModifyingCLI extends ZIOAppDefault {
     }
   }
   
-  // Get or create Claude agent
+  // Get or create Claude agent using ZIO service pattern
   def getOrCreateClaudeAgent(state: CLIState): ZIO[Any, Throwable, ClaudeAgent] = {
     state.claudeAgent match {
       case Some(agent) => ZIO.succeed(agent)
       case None =>
-        for {
-          config <- ZIO.succeed(VertexAIConfig.claudeDefault)
-          client <- VertexAIClient.create(config)
-          agent = new ClaudeAgent("Claude", client, state.memory)
-        } yield agent
+        // Create a layer for the Claude agent
+        val claudeLayer = ZLayer.succeed(VertexAIConfig.claudeDefault) >>> 
+                          ClaudeAgent.live("Claude")
+                          .tapError(e => ZIO.debug(s"Failed to create Claude agent: $e"))
+        
+        // Provide the memory system to the layer
+        ZIO.service[ClaudeAgent].provideLayer(
+          ZLayer.succeed(state.memory) >>> claudeLayer
+        )
     }
   }
-} 
+}

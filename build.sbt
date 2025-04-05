@@ -1,4 +1,5 @@
 import Dependencies._
+import Langchain4jDependencies._
 
 ThisBuild / scalaVersion := "3.3.1"
 ThisBuild / version := "0.1.0-SNAPSHOT"
@@ -65,7 +66,8 @@ lazy val root = (project in file("."))
     agents,
     http,
     dashboard,
-    examples
+    examples,
+    langchain4j
   )
 
 // Core module - essential base definitions and interfaces
@@ -138,6 +140,16 @@ lazy val dashboard = (project in file("modules/dashboard"))
   )
   .dependsOn(core, memory, agents, http)
 
+// Langchain4j integration module
+lazy val langchain4j = (project in file("modules/langchain4j"))
+  .settings(
+    commonSettings,
+    name := "agentic-ai-langchain4j",
+    description := "Langchain4j integration for the Agentic AI Framework",
+    libraryDependencies ++= commonDependencies ++ langchain4jDependencies
+  )
+  .dependsOn(core)
+
 // Examples module - example applications
 lazy val examples = (project in file("modules/examples"))
   .settings(
@@ -162,7 +174,7 @@ lazy val examples = (project in file("modules/examples"))
     Test / unmanagedSourceDirectories += baseDirectory.value / "src" / "test" / "scala",
     Test / unmanagedResourceDirectories += baseDirectory.value / "src" / "test" / "resources"
   )
-  .dependsOn(core, memory, agents, http, dashboard)
+  .dependsOn(core, memory, agents, http, dashboard, langchain4j)
 
 // Demo module - standalone demos with minimal dependencies
 lazy val demo = (project in file("modules/demo"))
@@ -195,6 +207,15 @@ lazy val runClaudeExample = taskKey[Unit]("Runs simple Claude 3.7 example")
 
 runClaudeExample := (examples / Compile / runMain).toTask(" com.agenticai.examples.SimpleClaudeExample").value
 
+// Custom tasks for Langchain4j examples
+lazy val runLangchainClaudeExample = taskKey[Unit]("Runs Langchain4j Claude example")
+lazy val runLangchainVertexAIExample = taskKey[Unit]("Runs Langchain4j Vertex AI example")
+lazy val runLangchainGoogleAIExample = taskKey[Unit]("Runs Langchain4j Google AI example")
+
+runLangchainClaudeExample := (langchain4j / Compile / runMain).toTask(" com.agenticai.core.llm.langchain.examples.SimpleClaudeExample").value
+runLangchainVertexAIExample := (langchain4j / Compile / runMain).toTask(" com.agenticai.core.llm.langchain.examples.SimpleVertexAIExample").value
+runLangchainGoogleAIExample := (langchain4j / Compile / runMain).toTask(" com.agenticai.core.llm.langchain.examples.SimpleGoogleAIGeminiExample").value
+
 // Integration test configuration
 lazy val it = project
   .in(file("it"))
@@ -205,4 +226,4 @@ lazy val it = project
     Defaults.itSettings,
     libraryDependencies ++= commonDependencies
   )
-  .dependsOn(core, memory, agents, http, dashboard)
+  .dependsOn(core, memory, agents, http, dashboard, langchain4j)

@@ -22,7 +22,8 @@ object ChatExampleSpec extends ZIOSpecDefault {
     test("should store and retrieve messages") {
       for {
         memorySystem <- ZIO.service[MemorySystem]
-        conversationCell <- memorySystem.createCell(Vector.empty[Message])
+        conversationCell <- memorySystem.createCell[Vector[Message]]("conversation")
+        _ <- conversationCell.write(Vector.empty[Message])
         
         // Test message
         message = Message("TestUser", "Hello, World!")
@@ -49,7 +50,8 @@ object ChatExampleSpec extends ZIOSpecDefault {
       for {
         memorySystem <- ZIO.service[MemorySystem]
         initialPrefs = UserPreferences("light", true, "en")
-        preferencesCell <- memorySystem.createCell(initialPrefs)
+        preferencesCell <- memorySystem.createCell[UserPreferences]("preferences")
+        _ <- preferencesCell.write(initialPrefs)
         
         // Update preferences
         updatedPrefs = initialPrefs.copy(theme = "dark")
@@ -73,7 +75,8 @@ object ChatExampleSpec extends ZIOSpecDefault {
     test("should maintain conversation history") {
       for {
         memorySystem <- ZIO.service[MemorySystem]
-        conversationCell <- memorySystem.createCell(Vector.empty[Message])
+        conversationCell <- memorySystem.createCell[Vector[Message]]("conversation-history")
+        _ <- conversationCell.write(Vector.empty[Message])
         
         // Create messages
         messages = Vector(
@@ -101,4 +104,4 @@ object ChatExampleSpec extends ZIOSpecDefault {
       } yield result
     }
   ).provide(ZLayer.succeed(new InMemorySystem()))
-} 
+}

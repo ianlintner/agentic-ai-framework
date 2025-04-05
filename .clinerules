@@ -1,0 +1,117 @@
+# Cline Rules for Agentic AI Framework
+
+## General Guidelines
+
+1. Always check the project structure and existing patterns before implementing new code
+2. Follow functional programming principles with ZIO effects
+3. Maintain type safety and leverage Scala's type system
+4. Write tests for all new functionality
+5. Ensure backward compatibility unless explicitly changing the API
+
+## ZIO Testing Guidelines
+
+1. Use ZIO Test for all test cases
+2. Separate effects from pure logic for easier testing
+3. Mock external dependencies using ZIO's test environment
+4. Test both success and failure cases
+5. Use property-based testing for data-intensive functions
+
+## ZIO TestClock Usage for Temporal Testing
+
+### Understanding TestClock
+
+1. TestClock is a controlled implementation of Clock that does not advance automatically
+2. Time only moves forward when explicitly instructed with `TestClock.adjust()` or `TestClock.setTime()`
+3. Effects scheduled with `ZIO.sleep()` or other timing functions are suspended until TestClock advances past their scheduled time
+4. TestClock operations must be properly sequenced with test assertions
+
+### Correct TestClock Patterns
+
+1. Always use `ZIO.clockWith(_.instant)` instead of `Instant.now()` to make code testable
+2. When testing scheduled operations:
+   - Start the scheduled operation in a separate fiber with `.fork`
+   - Advance the TestClock by the desired interval using `TestClock.adjust(duration)`
+   - Use a small `ZIO.sleep` after adjusting TestClock to allow effects to complete
+   - Then verify the expected operations occurred
+
+3. For multiple scheduled events:
+   - Advance the clock multiple times with assertions between adjustments
+   - Ensure proper sequencing of clock adjustments and assertions
+
+### Common TestClock Mistakes to Avoid
+
+1. Using `Instant.now()` directly instead of getting time from the ZIO Clock
+2. Not forking scheduled operations in tests
+3. Missing the small sleep after TestClock adjustment
+4. Expecting time to advance automatically
+5. Creating tests that depend on real time
+6. Using arbitrary `sleep` durations to wait for effects
+
+### Example TestClock Pattern
+
+```scala
+test("scheduled operation executes after delay") {
+  for {
+    // Setup test data
+    ref <- Ref.make(0)
+    
+    // Start the scheduled operation in a separate fiber
+    _ <- (ZIO.sleep(Duration.fromSeconds(10)) *> ref.update(_ + 1)).fork
+    
+    // Initially verify the ref hasn't been updated
+    initial <- ref.get
+    _ <- TestClock.adjust(Duration.fromSeconds(5)) // Advance halfway
+    halfway <- ref.get
+    _ <- TestClock.adjust(Duration.fromSeconds(5)) // Advance to completion
+    _ <- ZIO.sleep(Duration.fromMillis(10)) // Allow effect to complete
+    final <- ref.get
+  } yield assertTrue(initial == 0 && halfway == 0 && final == 1)
+}
+```
+
+## Library and Framework Integration
+
+1. Understand ZIO ecosystem components before implementation
+2. Follow idiomatic patterns for ZIO, ZStream, and ZLayer
+3. Use existing utilities for common patterns
+4. Leverage ZIO environment for dependency injection
+
+## Memory System Implementation
+
+1. Ensure proper cleanup of resources
+2. Implement appropriate error handling
+3. Use ZIO Ref for thread-safe state management
+4. Follow existing patterns for memory cell implementations
+5. Use ZIO Managed for resource lifecycle management
+
+## Agent Implementation Guidelines
+
+1. Follow the established agent composition patterns
+2. Use circuit patterns for complex agent behaviors
+3. Ensure proper separation of concerns in agent implementations
+4. Leverage memory system for agent state persistence
+5. Make agents composable through standard interfaces
+
+## Optimization Considerations
+
+1. Identify and optimize critical paths
+2. Use ZIO profiling tools to identify bottlenecks
+3. Consider memory impact of large data structures
+4. Leverage ZIO fibers for concurrent processing
+5. Implement backpressure mechanisms for streaming operations
+
+## Error Handling Best Practices
+
+1. Use ZIO error channel for expected errors
+2. Use defects for unexpected or fatal errors
+3. Implement appropriate retry strategies for transient errors
+4. Provide detailed error messages and context
+5. Clean up resources even in error cases
+
+## Documentation Requirements
+
+1. Include scaladoc comments for all public APIs
+2. Document non-obvious implementations with inline comments
+3. Update relevant markdown documentation when changing behavior
+4. Provide examples for complex functionality
+5. Explain theoretical foundations where applicable

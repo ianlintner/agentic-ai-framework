@@ -20,6 +20,9 @@ class VertexAIClient(config: VertexAIConfig) {
     .build()
   private lazy val client = PredictionServiceClient.create(settings)
   
+  /**
+   * Complete a prompt with the model (non-streaming)
+   */
   def complete(prompt: String): ZIO[Any, Throwable, String] = {
     ZIO.attempt {
       val instance = Struct.newBuilder()
@@ -42,6 +45,11 @@ class VertexAIClient(config: VertexAIConfig) {
     }
   }
   
+  /**
+   * Stream a completion token by token from the model
+   * Since we don't have access to the actual streaming API in our current setup,
+   * we'll simulate streaming by splitting the complete response
+   */
   def streamCompletion(prompt: String): ZStream[Any, Throwable, String] = {
     ZStream.fromZIO(complete(prompt))
       .flatMap(response => ZStream.fromIterable(response.split("(?<=\\s)|(?=\\s)")))
@@ -49,7 +57,19 @@ class VertexAIClient(config: VertexAIConfig) {
 }
 
 object VertexAIClient {
-  def create(config: VertexAIConfig): ZIO[Any, Throwable, VertexAIClient] = {
-    ZIO.succeed(new VertexAIClient(config))
+  /**
+   * Create a new VertexAIClient with the given configuration
+   */
+  def make(
+    projectId: String, 
+    location: String = "us-central1",
+    modelId: String = "claude-3-sonnet-20240229"
+  ): VertexAIClient = {
+    val config = VertexAIConfig(
+      projectId = projectId,
+      location = location,
+      modelId = modelId
+    )
+    new VertexAIClient(config)
   }
-} 
+}

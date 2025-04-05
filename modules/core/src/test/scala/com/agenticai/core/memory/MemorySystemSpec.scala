@@ -139,7 +139,9 @@ object MemorySystemSpec extends ZIOSpecDefault {
       
       test("makeWithTimeBasedCleanup creates a system with time-based cleanup") {
         for {
+          tempDir <- ZIO.attempt(java.nio.file.Files.createTempDirectory("memory-test").toFile)
           system <- MemorySystem.makeWithTimeBasedCleanup(
+            baseDir = tempDir,
             maxAge = JavaDuration.ofHours(1),
             interval = JavaDuration.ofMinutes(5)
           )
@@ -151,7 +153,9 @@ object MemorySystemSpec extends ZIOSpecDefault {
       
       test("makeWithSizeBasedCleanup creates a system with size-based cleanup") {
         for {
+          tempDir <- ZIO.attempt(java.nio.file.Files.createTempDirectory("memory-test").toFile)
           system <- MemorySystem.makeWithSizeBasedCleanup(
+            baseDir = tempDir,
             maxSize = 1000,
             interval = JavaDuration.ofMinutes(5)
           )
@@ -162,4 +166,4 @@ object MemorySystemSpec extends ZIOSpecDefault {
       }
     )
   ) @@ TestAspect.sequential
-} 
+}

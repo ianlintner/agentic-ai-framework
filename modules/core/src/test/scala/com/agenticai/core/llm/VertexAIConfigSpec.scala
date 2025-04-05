@@ -8,15 +8,16 @@ class VertexAIConfigSpec extends AnyFlatSpec with Matchers {
   "VertexAIConfig.claudeDefault" should "have expected values" in {
     val config = VertexAIConfig.claudeDefault
     config.projectId shouldBe "your-project-id"
-    config.modelName shouldBe "claude-3-sonnet-20240229-v1p0"
-    config.temperature shouldBe 0.7
-    config.maxOutputTokens shouldBe 2048
+    config.modelName shouldBe "claude-3-sonnet-20240229"
+    config.temperature shouldBe 0.2
+    config.maxOutputTokens shouldBe 1024
   }
   
   "Custom config" should "override defaults" in {
     val custom = VertexAIConfig(
       projectId = "custom-project",
-      modelName = "custom-model",
+      location = "us-central1",
+      modelId = "custom-model",
       temperature = 0.5,
       maxOutputTokens = 2048
     )
@@ -28,10 +29,12 @@ class VertexAIConfigSpec extends AnyFlatSpec with Matchers {
   }
   
   "getLocationString" should "return valid location string" in {
-    val locationString = VertexAIConfig.getLocationString(VertexAIConfig(
+    val config = VertexAIConfig(
       projectId = "test-project",
-      location = "us-central1"
-    ))
+      location = "us-central1",
+      modelId = "test-model"
+    )
+    val locationString = config.getLocationString
     locationString shouldBe "projects/test-project/locations/us-central1"
   }
   

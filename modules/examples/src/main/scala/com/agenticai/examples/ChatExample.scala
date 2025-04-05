@@ -23,12 +23,17 @@ object ChatExample extends ZIOAppDefault {
     memorySystem <- MemorySystem.make
 
     // Create cells for different types of data
-    conversationCell <- memorySystem.createCell(Vector(Message("System", "Welcome to the chat!")))
-    preferencesCell <- memorySystem.createCell(UserPreferences(
+    conversationCell <- memorySystem.createCell[Vector[Message]]("conversation")
+    _ <- conversationCell.write(Vector(Message("System", "Welcome to the chat!")))
+    _ <- conversationCell.addTag("conversation")
+    
+    preferencesCell <- memorySystem.createCell[UserPreferences]("preferences")
+    _ <- preferencesCell.write(UserPreferences(
       theme = "dark",
       notifications = true,
       language = "en"
     ))
+    _ <- preferencesCell.addTag("preferences")
 
     // Simulate chat interactions
     _ <- simulateChat(conversationCell)

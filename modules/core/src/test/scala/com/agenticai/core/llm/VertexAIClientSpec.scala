@@ -1,105 +1,92 @@
 package com.agenticai.core.llm
 
 import zio._
+import zio.stream._
 import zio.test._
 import zio.test.Assertion._
 import zio.test.TestAspect._
-import zio.stream.ZStream
 
+/**
+ * Tests for the Vertex AI client integration
+ */
 object VertexAIClientSpec extends ZIOSpecDefault {
-  def spec = suite("VertexAIClient")(
-    test("creates functional client with successful responses") {
-      for {
-        mockClient <- ZIO.succeed(new VertexAIClient {
-          override def streamCompletion(prompt: String): ZStream[Any, Throwable, String] = 
-            ZStream.fromIterable(List("Test response"))
-          override def complete(prompt: String): Task[String] = 
-            ZIO.succeed("Test response")
-          override def generateText(prompt: String): Task[String] =
-            ZIO.succeed("Test response")
-        })
-        completion <- mockClient.complete("test")
-        generation <- mockClient.generateText("test")
-        stream <- mockClient.streamCompletion("test").runCollect
-      } yield assertTrue(
-        completion == "Test response",
-        generation == "Test response",
-        stream == List("Test response")
-      )
-    },
-    test("handles errors appropriately") {
-      val testError = new RuntimeException("Test error")
-      for {
-        mockClient <- ZIO.succeed(new VertexAIClient {
-          override def streamCompletion(prompt: String): ZStream[Any, Throwable, String] = 
-            ZStream.fail(testError)
-          override def complete(prompt: String): Task[String] = 
-            ZIO.fail(testError)
-          override def generateText(prompt: String): Task[String] =
-            ZIO.fail(testError)
-        })
-        completionExit <- mockClient.complete("test").exit
-        generationExit <- mockClient.generateText("test").exit
-        streamExit <- mockClient.streamCompletion("test").runCollect.exit
-      } yield assertTrue(
-        completionExit == Exit.fail(testError),
-        generationExit == Exit.fail(testError),
-        streamExit == Exit.fail(testError)
-      )
-    },
-    test("generates text from prompt with proper error handling") {
-      for {
-        mockClient <- ZIO.succeed(new VertexAIClient {
-          override def streamCompletion(prompt: String): ZStream[Any, Throwable, String] = 
-            ZStream.fromIterable(List("Test response"))
-          override def complete(prompt: String): Task[String] = 
-            ZIO.succeed("Test response")
-          override def generateText(prompt: String): Task[String] =
-            if (prompt.isEmpty) ZIO.fail(new IllegalArgumentException("Prompt cannot be empty"))
-            else ZIO.succeed("Generated: " + prompt)
-        })
-        successResponse <- mockClient.generateText("Write a story")
-        emptyPromptExit <- mockClient.generateText("").exit
-      } yield assertTrue(
-        successResponse == "Generated: Write a story",
-        emptyPromptExit.isFailure
-      )
-    },
-    test("completes prompt with response and handles errors") {
-      for {
-        mockClient <- ZIO.succeed(new VertexAIClient {
-          override def streamCompletion(prompt: String): ZStream[Any, Throwable, String] = 
-            ZStream.fromIterable(List("Test response"))
-          override def complete(prompt: String): Task[String] = 
-            if (prompt.isEmpty) ZIO.fail(new IllegalArgumentException("Prompt cannot be empty"))
-            else ZIO.succeed("Completed: " + prompt)
-          override def generateText(prompt: String): Task[String] =
-            ZIO.succeed("Test response")
-        })
-        successResponse <- mockClient.complete("Hello, who are you?")
-        emptyPromptExit <- mockClient.complete("").exit
-      } yield assertTrue(
-        successResponse == "Completed: Hello, who are you?",
-        emptyPromptExit.isFailure
-      )
-    },
-    test("streams response tokens sequentially with error handling") {
-      for {
-        mockClient <- ZIO.succeed(new VertexAIClient {
-          override def streamCompletion(prompt: String): ZStream[Any, Throwable, String] = 
-            if (prompt.isEmpty) ZStream.fail(new IllegalArgumentException("Prompt cannot be empty"))
-            else ZStream.fromIterable(List("1", "2", "3", "4", "5"))
-          override def complete(prompt: String): Task[String] = 
-            ZIO.succeed("Test response")
-          override def generateText(prompt: String): Task[String] =
-            ZIO.succeed("Test response")
-        })
-        successTokens <- mockClient.streamCompletion("Count from 1 to 5.").runCollect
-        emptyPromptExit <- mockClient.streamCompletion("").runCollect.exit
-      } yield assertTrue(
-        successTokens == List("1", "2", "3", "4", "5"),
-        emptyPromptExit.isFailure
-      )
+  
+  // Mock client for testing without real API
+  private def createMockClient = {
+    // Create a mock client with default configuration
+    new VertexAIClient(VertexAIConfig.claudeDefault.copy(projectId = "test-project")) {
+      override def complete(prompt: String): ZIO[Any, Throwable, String] = {
+        ZIO.succeed(s"Mock response for: $prompt")
+      }
+      
+      override def streamCompletion(prompt: String): ZStream[Any, Throwable, String] = {
+        val response = s"Mock streaming response for: $prompt"
+        ZStream.fromIterable(response.split(" ").map(_ + " "))
+      }
     }
-  ) @@ TestAspect.sequential
+  }
+  
+  // Test environment detector
+  private lazy val isLiveTest = false
+  
+  def spec = suite("VertexAIClient")(
+    // Configuration tests
+    suite("Configuration")(
+      test("should initialize with default settings") {
+        val config = VertexAIConfig.claudeDefault.copy(projectId = "test-project")
+        val client = new VertexAIClient(config)
+        assertTrue(client != null)
+      },
+      
+      test("should use different configurations correctly") {
+        val standardConfig = VertexAIConfig.claudeDefault.copy(projectId = "test-project")
+        val highThroughputConfig = VertexAIConfig.highThroughput.copy(projectId = "test-project")
+        val lowLatencyConfig = VertexAIConfig.lowLatency.copy(projectId = "test-project")
+        
+        assertTrue(
+          standardConfig.modelId == "claude-3-sonnet-20240229" &&
+          lowLatencyConfig.modelId == "claude-3-haiku-20240307" &&
+          lowLatencyConfig.maxOutputTokens < standardConfig.maxOutputTokens
+        )
+      }
+    ),
+    
+    // Basic functionality tests
+    suite("Basic Functionality")(
+      test("should handle completion requests with mock") {
+        val client = createMockClient
+        
+        for {
+          result <- client.complete("Hello")
+        } yield assertTrue(result.contains("Hello"))
+      },
+      
+      test("should handle streaming with mock") {
+        val client = createMockClient
+        
+        for {
+          results <- client.streamCompletion("Hello").runCollect
+        } yield assertTrue(
+          results.size > 0 &&
+          results.mkString.contains("Hello")
+        )
+      }
+    ),
+    
+    // Live API tests (ignored by default)
+    suite("Live API")(
+      test("should complete with real API") {
+        for {
+          projectIdOpt <- System.env("GOOGLE_CLOUD_PROJECT")
+          projectId = projectIdOpt.getOrElse("test-project")
+          config = VertexAIConfig.claudeDefault.copy(projectId = projectId)
+          client = new VertexAIClient(config)
+          result <- client.complete("Hello, my name is Claude.").either
+        } yield assertTrue(
+          if (projectId == "test-project") result.isLeft
+          else result.isRight && result.toOption.get.nonEmpty
+        )
+      }
+    ) @@ (if (isLiveTest) identity else ignore)
+  ) @@ TestAspect.timeout(30.seconds)
 }

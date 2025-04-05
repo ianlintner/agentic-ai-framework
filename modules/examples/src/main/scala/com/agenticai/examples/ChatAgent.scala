@@ -29,7 +29,6 @@ object ChatAgentExample extends ZIOAppDefault {
         .runHead
         .someOrFail(new RuntimeException("No result produced"))
         .provideLayer(ZLayer.fromZIO(MemorySystem.make))
-        .mapError(err => new RuntimeException(s"Memory error: ${err.getMessage}"))
       
       // Display the result
       _ <- ZIO.logInfo(s"Agent response: $result")
@@ -37,7 +36,6 @@ object ChatAgentExample extends ZIOAppDefault {
       // Get the agent's state
       state <- agent.state
         .provideLayer(ZLayer.fromZIO(MemorySystem.make))
-        .mapError(err => new RuntimeException(s"Memory error: ${err.getMessage}"))
       
       _ <- ZIO.logInfo(s"Agent state: $state")
     } yield ()

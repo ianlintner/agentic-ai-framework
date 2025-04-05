@@ -58,7 +58,96 @@ class PersistentMemorySystem(baseDir: File, runtime: Runtime[Any]) extends Memor
     runtime.unsafe.run(loadCells()).getOrThrow()
   }
 
-  override def createCell[A](initialValue: A): ZIO[Any, MemoryError, MemoryCell[A]] = {
+  // Required methods from MemorySystem trait
+  override def createCell[T](name: String): ZIO[Any, Throwable, MemoryCell[T]] = {
+    for {
+      cell <- MemoryCell.make(null.asInstanceOf[T])
+      id = if (name.contains("/")) name else java.util.UUID.randomUUID().toString
+      file = new File(baseDir, s"cell_$id.ser")
+      _ <- ZIO.succeed {
+        cellFiles.put(id, file)
+      }
+      _ <- saveCell(id, cell).mapError(e => new Throwable(e.getMessage))
+      
+      // Create a proxy cell that will automatically persist on write
+      proxiedCell = new MemoryCell[T] {
+        override def read = cell.read
+        override def write(a: T) = for {
+          _ <- cell.write(a)
+          _ <- saveCell(id, cell)
+        } yield ()
+        override def update(f: Option[T] => T) = for {
+          _ <- cell.update(f)
+          _ <- saveCell(id, cell)
+        } yield ()
+        override def metadata = cell.metadata
+        override def clear = for {
+          _ <- cell.clear
+          _ <- saveCell(id, cell)
+        } yield ()
+        override def empty = for {
+          _ <- cell.empty
+          _ <- saveCell(id, cell)
+        } yield ()
+        override def getMetadata = cell.getMetadata
+        override def addTag(tag: String) = for {
+          _ <- cell.addTag(tag)
+          // Update tag index
+          _ <- ZIO.succeed {
+            tagIndex.update(tag, tagIndex.getOrElse(tag, Set.empty) + id)
+          }
+          _ <- saveCell(id, cell)
+        } yield ()
+        override def removeTag(tag: String) = for {
+          _ <- cell.removeTag(tag)
+          // Update tag index
+          _ <- ZIO.succeed {
+            tagIndex.update(tag, tagIndex.getOrElse(tag, Set.empty) - id)
+          }
+          _ <- saveCell(id, cell)
+        } yield ()
+        override def getTags = cell.getTags
+      }
+      
+      _ <- ZIO.succeed {
+        cells.put(id, proxiedCell)
+        cellIdMap.put(proxiedCell, id)
+      }
+    } yield proxiedCell
+  }
+  
+  override def getCell[T](name: String): ZIO[Any, Throwable, Option[MemoryCell[T]]] = {
+    ZIO.succeed(cells.get(name).map(_.asInstanceOf[MemoryCell[T]]))
+  }
+  
+  override def deleteCell(name: String): ZIO[Any, Throwable, Unit] = {
+    for {
+      cellOpt <- ZIO.succeed(cells.get(name))
+      _ <- ZIO.foreachDiscard(cellOpt) { cell =>
+        // Remove from tag index
+        for {
+          tags <- cell.getTags.catchAll(_ => ZIO.succeed(Set.empty[String]))
+          _ <- ZIO.succeed {
+            tags.foreach(tag => 
+              tagIndex.update(tag, tagIndex.getOrElse(tag, Set.empty) - name)
+            )
+          }
+        } yield ()
+      }
+      // Remove from data structures
+      _ <- ZIO.succeed {
+        cells.remove(name)
+        cellIdMap.remove(cellOpt.getOrElse(null))
+        val file = cellFiles.remove(name).getOrElse(null)
+        if (file != null && file.exists()) {
+          file.delete()
+        }
+      }
+    } yield ()
+  }
+  
+  // Helper method for creating cells with initial values
+  def createCellWithValue[A](initialValue: A): ZIO[Any, MemoryError, MemoryCell[A]] = {
     for {
       cell <- MemoryCell.make(initialValue)
       id = java.util.UUID.randomUUID().toString
@@ -165,19 +254,19 @@ class PersistentMemorySystem(baseDir: File, runtime: Runtime[Any]) extends Memor
     } yield proxiedCell
   }
 
-  override def getCellsByTag(tag: String): ZIO[Any, MemoryError, Set[MemoryCell[_]]] = {
+  override def getCellsByTag(tag: String): ZIO[Any, Throwable, List[MemoryCell[_]]] = {
     ZIO.succeed {
       tagIndex.getOrElse(tag, Set.empty)
         .flatMap(id => cells.get(id))
-        .toSet
+        .toList
     }
   }
 
-  override def getAllCells: ZIO[Any, MemoryError, Set[MemoryCell[_]]] = {
-    ZIO.succeed(cells.values.toSet)
+  override def getAllCells: ZIO[Any, Throwable, List[MemoryCell[_]]] = {
+    ZIO.succeed(cells.values.toList)
   }
 
-  override def clearAll: ZIO[Any, MemoryError, Unit] = {
+  def clearAll: ZIO[Any, MemoryError, Unit] = {
     for {
       _ <- ZIO.foreach(cells.values)(_.clear)
       _ <- ZIO.succeed {
@@ -190,35 +279,37 @@ class PersistentMemorySystem(baseDir: File, runtime: Runtime[Any]) extends Memor
     } yield ()
   }
   
-  override def registerCleanupStrategy(strategy: CleanupStrategy): ZIO[Any, MemoryError, Unit] = {
+  def registerCleanupStrategy(strategy: CleanupStrategy): ZIO[Any, MemoryError, Unit] = {
     ZIO.succeed {
       cleanupStrategies.put(strategy.name, strategy)
     }
   }
   
-  override def unregisterCleanupStrategy(strategyName: String): ZIO[Any, MemoryError, Unit] = {
+  def unregisterCleanupStrategy(strategyName: String): ZIO[Any, MemoryError, Unit] = {
     ZIO.succeed {
       cleanupStrategies.remove(strategyName)
     }
   }
   
-  override def getCleanupStrategies: ZIO[Any, MemoryError, List[CleanupStrategy]] = {
+  def getCleanupStrategies: ZIO[Any, MemoryError, List[CleanupStrategy]] = {
     ZIO.succeed {
       cleanupStrategies.values.toList
     }
   }
   
-  override def runCleanup: ZIO[Any, MemoryError, Int] = {
+  def runCleanup: ZIO[Any, MemoryError, Int] = {
     for {
       strategies <- getCleanupStrategies
       results <- ZIO.foreach(strategies)(runCleanup)
     } yield results.sum
   }
   
-  override def runCleanup(strategy: CleanupStrategy): ZIO[Any, MemoryError, Int] = {
+  def runCleanup(strategy: CleanupStrategy): ZIO[Any, MemoryError, Int] = {
     for {
-      allCells <- getAllCells
-      cellsToCleanup <- ZIO.filter(allCells.toList)(strategy.shouldCleanup)
+      allCells <- getAllCells.mapError(e => MemoryError.ReadError(s"Error getting cells: ${e.getMessage}"))
+      cellsToCleanup <- ZIO.filter(allCells.toList)(cell => 
+        strategy.shouldCleanup(cell).mapError(e => MemoryError.ReadError(s"Error checking cleanup: ${e.getMessage}"))
+      )
       _ <- ZIO.foreach(cellsToCleanup)(_.empty)
       // For persistent cells, we also need to save the changes to disk
       _ <- ZIO.foreach(cellsToCleanup) { cell =>
@@ -233,7 +324,7 @@ class PersistentMemorySystem(baseDir: File, runtime: Runtime[Any]) extends Memor
     } yield cellsToCleanup.size
   }
   
-  override def enableAutomaticCleanup(interval: JavaDuration): ZIO[Any, MemoryError, Unit] = {
+  def enableAutomaticCleanup(interval: JavaDuration): ZIO[Any, MemoryError, Unit] = {
     for {
       _ <- disableAutomaticCleanup
       fiber <- scheduleCleanup(interval).fork
@@ -243,7 +334,7 @@ class PersistentMemorySystem(baseDir: File, runtime: Runtime[Any]) extends Memor
     } yield ()
   }
   
-  override def disableAutomaticCleanup: ZIO[Any, MemoryError, Unit] = {
+  def disableAutomaticCleanup: ZIO[Any, MemoryError, Unit] = {
     for {
       _ <- ZIO.foreachDiscard(cleanupFiber)(_.interrupt)
       _ <- ZIO.succeed {
