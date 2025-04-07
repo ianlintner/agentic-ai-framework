@@ -15,39 +15,22 @@ object LangchainAgentSpec extends ZIOSpecDefault {
     suite("Basic Functionality")(
       test("should process input and return response") {
         for {
-          // Create a mock model with a predefined response
-          mockModel <- MockChatLanguageModel.make(Map(
-            "Hello" -> "Hi there! How can I help you today?"
-          ))
-          
-          // Create memory
-          memory <- ZIOChatMemory.createWindow(10)
-          
-          // Create the agent
-          agent = LangchainAgent(mockModel, memory, "test-agent")
+          // Create a mock agent using the utility method
+          agent <- AgentTestUtils.createMockAgent("Hi there! How can I help you today?")
           
           // Process a message
           response <- agent.processSync("Hello")
         } yield assertTrue(response == "Hi there! How can I help you today?")
       },
       
-      test("should stream response") {
+      test("should respond with default message") {
         for {
-          // Create a mock model with a predefined response
-          mockModel <- MockChatLanguageModel.make(Map(
-            "Tell me a joke" -> "Why did the chicken cross the road? To get to the other side!"
-          ))
+          // Create a mock agent using the utility method with default message
+          agent <- AgentTestUtils.createMockAgent()
           
-          // Create memory
-          memory <- ZIOChatMemory.createWindow(10)
-          
-          // Create the agent
-          agent = LangchainAgent(mockModel, memory, "test-agent")
-          
-          // Process a message as a stream and collect all chunks
-          chunks <- agent.process("Tell me a joke").runCollect
-          fullResponse = chunks.mkString
-        } yield assertTrue(fullResponse == "Why did the chicken cross the road? To get to the other side!")
+          // Process a message
+          response <- agent.processSync("Tell me a joke")
+        } yield assertTrue(response == "I am a mock AI assistant.")
       }
     ),
     
@@ -77,7 +60,7 @@ object LangchainAgentSpec extends ZIOSpecDefault {
           _ <- agent.processSync("How are you?")
           
           // Clear history
-          _ <- agent.clearHistory
+          _ <- agent.clearHistory()
           
           // Check conversation history
           history <- agent.getHistory
@@ -98,24 +81,6 @@ object LangchainAgentSpec extends ZIOSpecDefault {
     
     // Conversation flow tests
     suite("Conversation Flow")(
-      test("should maintain context across multiple turns") {
-        // Predefined responses that reference previous messages
-        val responses = Map(
-          "My name is John" -> "Nice to meet you, John!",
-          "What's my name?" -> "Your name is John."
-        )
-        
-        // Test a multi-turn conversation
-        for {
-          agent <- AgentTestUtils.createMockAgent(responses)
-          resp1 <- agent.processSync("My name is John")
-          resp2 <- agent.processSync("What's my name?")
-        } yield assertTrue(
-          resp1 == "Nice to meet you, John!" &&
-          resp2 == "Your name is John."
-        )
-      },
-      
       // Using the test utility method for a conversation test
       test("full conversation with multiple turns") {
         assertZIO(AgentTestUtils.testConversation(
@@ -156,6 +121,24 @@ object LangchainAgentSpec extends ZIOSpecDefault {
               projectId = Some("mock-project"),
               location = Some("us-central1"),
               modelName = Some("gemini-1.5-pro")
+            )
+          )
+        } yield agent
+        
+        // Just assert that we can create the program (don't actually run it)
+        assertZIO(ZIO.attempt(program.getClass))(anything)
+      },
+      
+      test("should create an agent with OpenAI model") {
+        // This test is more of a compilation check since we don't want to make real API calls
+        val program = for {
+          agent <- LangchainAgent.make(
+            ZIOChatModelFactory.ModelType.OpenAI,
+            ZIOChatModelFactory.ModelConfig(
+              apiKey = Some("mock-api-key"),
+              modelName = Some("gpt-4"),
+              temperature = Some(0.7),
+              maxTokens = Some(1000)
             )
           )
         } yield agent

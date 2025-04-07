@@ -1,6 +1,7 @@
 package com.agenticai.core.llm.langchain
 
 import dev.langchain4j.model.anthropic.AnthropicChatModel
+import dev.langchain4j.model.openai.OpenAiChatModel
 import zio._
 
 /**
@@ -37,6 +38,39 @@ object ZIOChatModelFactory {
     }
   }
   
+  /**
+   * Creates an OpenAI model.
+   *
+   * @param apiKey The OpenAI API key
+   * @param modelName The model name to use (defaults to gpt-4)
+   * @param temperature The temperature parameter for the model
+   * @param maxTokens The maximum number of tokens to generate
+   * @return A ZIO effect that resolves to a ZIOChatLanguageModel
+   */
+  def makeOpenAIModel(
+    apiKey: String, 
+    modelName: String = "gpt-4",
+    temperature: Option[Double] = None,
+    maxTokens: Option[Integer] = None
+  ): ZIO[Any, Throwable, ZIOChatLanguageModel] = {
+    ZIO.attempt {
+      // Create a builder with the required parameters
+      val builder = OpenAiChatModel.builder()
+        .apiKey(apiKey)
+        .modelName(modelName)
+      
+      // Add optional parameters if provided
+      temperature.foreach(builder.temperature(_))
+      maxTokens.foreach(builder.maxTokens(_))
+      
+      // Build the model
+      val model = builder.build()
+      
+      // Wrap the model in a ZIOChatLanguageModel
+      ZIOChatLanguageModel(model)
+    }
+  }
+
   // Type definitions for model configurations
   sealed trait ModelType
   
@@ -44,6 +78,7 @@ object ZIOChatModelFactory {
     case object Claude extends ModelType
     case object VertexAIGemini extends ModelType
     case object GoogleAIGemini extends ModelType
+    case object OpenAI extends ModelType
   }
   
   case class ModelConfig(
@@ -82,10 +117,29 @@ object ZIOChatModelFactory {
         }
       
       case ModelType.VertexAIGemini =>
-        ZIO.fail(new UnsupportedOperationException("VertexAIGemini model is not yet implemented"))
+        VertexAIModelSupport.makeVertexAIGeminiModel(
+          config.projectId.getOrElse(throw new IllegalArgumentException("VertexAI Gemini model requires a project ID")),
+          config.location.getOrElse("us-central1"),
+          config.modelName.getOrElse("gemini-1.5-pro"),
+          config.temperature,
+          config.maxTokens.map(Integer.valueOf)
+        )
         
       case ModelType.GoogleAIGemini =>
         ZIO.fail(new UnsupportedOperationException("GoogleAIGemini model is not yet implemented"))
+        
+      case ModelType.OpenAI =>
+        config.apiKey match {
+          case Some(apiKey) => 
+            makeOpenAIModel(
+              apiKey, 
+              config.modelName.getOrElse("gpt-4"),
+              config.temperature,
+              config.maxTokens.map(Integer.valueOf)
+            )
+          case None => 
+            ZIO.fail(new IllegalArgumentException("OpenAI model requires an API key"))
+        }
     }
   }
 }

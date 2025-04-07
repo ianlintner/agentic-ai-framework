@@ -1,0 +1,48 @@
+// Mesh Module Build Configuration Template
+// To use: Copy the contents to the main build.sbt and adjust as needed
+
+// Mesh module definition
+lazy val mesh = project
+  .in(file("modules/mesh"))
+  .settings(
+    name := "agentic-ai-mesh",
+    description := "Distributed agent mesh network for the Agentic AI Framework",
+    
+    // Dependencies
+    libraryDependencies ++= Seq(
+      // ZIO dependencies
+      "dev.zio" %% "zio"              % zioVersion,
+      "dev.zio" %% "zio-streams"      % zioVersion,
+      "dev.zio" %% "zio-http"         % "3.0.0-RC2", // HTTP server/client
+      "dev.zio" %% "zio-json"         % "0.6.0",     // JSON serialization
+      "dev.zio" %% "zio-cache"        % "0.2.3",     // Caching
+      
+      // Testing
+      "dev.zio" %% "zio-test"         % zioVersion % Test,
+      "dev.zio" %% "zio-test-sbt"     % zioVersion % Test,
+      "dev.zio" %% "zio-test-magnolia"% zioVersion % Test
+    ),
+    
+    // Test configuration
+    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
+  )
+  // Dependencies on other modules
+  .dependsOn(
+    core,
+    memory % "compile->compile;test->test" // Include test utilities from memory
+  )
+
+// Add the mesh module to the root project's aggregation
+lazy val root = project
+  .in(file("."))
+  .aggregate(
+    core,
+    memory,
+    http,
+    agents,
+    dashboard,
+    examples,
+    langchain4j,
+    mesh // Add mesh here
+  )
+  // ... existing settings

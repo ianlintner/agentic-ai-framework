@@ -1,81 +1,95 @@
 package com.agenticai.core.llm.langchain
 
-import dev.langchain4j.memory.ChatMemory
-import dev.langchain4j.memory.chat.MessageWindowChatMemory
 import dev.langchain4j.data.message.{ChatMessage, UserMessage, AiMessage}
 import zio._
+import scala.jdk.CollectionConverters._
 
 /**
- * A ZIO wrapper for Langchain4j's ChatMemory interface.
- * This trait provides ZIO effects for interacting with conversation history.
+ * A ZIO wrapper for Langchain4j's chat memory.
+ * This trait provides methods for managing conversation history.
  */
 trait ZIOChatMemory {
   /**
-   * Adds a user message to memory.
+   * Adds a user message to the conversation history.
    *
-   * @param message The message text to add
+   * @param message The user's message
    * @return A ZIO effect that completes when the message is added
    */
   def addUserMessage(message: String): ZIO[Any, Throwable, Unit]
   
   /**
-   * Adds an assistant message to memory.
+   * Adds an assistant message to the conversation history.
    *
-   * @param message The message text to add
+   * @param message The assistant's message
    * @return A ZIO effect that completes when the message is added
    */
   def addAssistantMessage(message: String): ZIO[Any, Throwable, Unit]
   
   /**
-   * Retrieves all messages in the conversation history.
+   * Gets all messages in the conversation history.
    *
-   * @return A ZIO effect that resolves to a list of chat messages
+   * @return A ZIO effect that completes with the list of messages
    */
   def messages: ZIO[Any, Throwable, List[ChatMessage]]
   
   /**
-   * Clears all messages from memory.
+   * Clears the conversation history.
    *
-   * @return A ZIO effect that completes when the memory is cleared
+   * @return A ZIO effect that completes when the history is cleared
    */
-  def clear: ZIO[Any, Throwable, Unit]
+  def clear(): ZIO[Any, Throwable, Unit]
 }
 
 /**
- * Live implementation of ZIOChatMemory that delegates to a Langchain4j ChatMemory.
- *
- * @param memory The underlying Langchain4j chat memory implementation
+ * Implementation of ZIOChatMemory that uses ZIO Ref for in-memory storage.
  */
-final case class ZIOChatMemoryLive(memory: ChatMemory) extends ZIOChatMemory {
-  override def addUserMessage(message: String): ZIO[Any, Throwable, Unit] =
-    ZIO.attemptBlocking(memory.add(UserMessage.from(message)))
+private class InMemoryZIOChatMemory(
+  maxMessages: Int,
+  ref: Ref[List[ChatMessage]]
+) extends ZIOChatMemory {
   
-  override def addAssistantMessage(message: String): ZIO[Any, Throwable, Unit] =
-    ZIO.attemptBlocking(memory.add(AiMessage.from(message)))
+  override def addUserMessage(message: String): ZIO[Any, Throwable, Unit] = {
+    ref.update { messages =>
+      (UserMessage.from(message) :: messages).take(maxMessages)
+    }
+  }
   
-  override def messages: ZIO[Any, Throwable, List[ChatMessage]] =
-    ZIO.attemptBlocking(memory.messages().toArray.toList.asInstanceOf[List[ChatMessage]])
+  override def addAssistantMessage(message: String): ZIO[Any, Throwable, Unit] = {
+    ref.update { messages =>
+      (AiMessage.from(message) :: messages).take(maxMessages)
+    }
+  }
   
-  override def clear: ZIO[Any, Throwable, Unit] =
-    ZIO.attemptBlocking(memory.clear())
+  override def messages: ZIO[Any, Throwable, List[ChatMessage]] = {
+    ref.get.map(_.reverse) // Return in chronological order
+  }
+  
+  override def clear(): ZIO[Any, Throwable, Unit] = {
+    ref.set(List.empty)
+  }
 }
 
+/**
+ * Factory object for creating ZIOChatMemory instances.
+ */
 object ZIOChatMemory {
   /**
-   * Creates a windowed chat memory with the given maximum number of messages.
+   * Creates a new in-memory chat memory.
    *
    * @param maxMessages The maximum number of messages to store
-   * @return A ZIO effect that resolves to a ZIOChatMemory
+   * @return A ZIO effect that completes with a new ZIOChatMemory
    */
-  def createWindow(maxMessages: Int): UIO[ZIOChatMemory] =
-    ZIO.succeed(ZIOChatMemoryLive(MessageWindowChatMemory.withMaxMessages(maxMessages)))
-    
+  def createInMemory(maxMessages: Int): ZIO[Any, Nothing, ZIOChatMemory] =
+    for {
+      ref <- Ref.make(List.empty[ChatMessage])
+    } yield new InMemoryZIOChatMemory(maxMessages, ref)
+  
   /**
-   * Creates a ZLayer for a windowed chat memory.
+   * Creates a ZLayer that provides an in-memory ZIOChatMemory.
    *
    * @param maxMessages The maximum number of messages to store
    * @return A ZLayer that provides a ZIOChatMemory
    */
-  def windowLayer(maxMessages: Int): ZLayer[Any, Nothing, ZIOChatMemory] =
-    ZLayer.succeed(ZIOChatMemoryLive(MessageWindowChatMemory.withMaxMessages(maxMessages)))
+  def inMemoryLayer(maxMessages: Int): ZLayer[Any, Nothing, ZIOChatMemory] =
+    ZLayer.fromZIO(createInMemory(maxMessages))
 }
