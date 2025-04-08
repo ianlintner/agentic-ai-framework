@@ -31,17 +31,17 @@ class InMemoryAgentDirectory extends AgentDirectory {
     val agentId = ref.id
     val now = Instant.now()
     
+    // Create the agent info
+    val info = AgentInfo(
+      agentId = agentId,
+      ref = ref,
+      metadata = metadata,
+      status = AgentStatus.Active,
+      registeredAt = now,
+      lastUpdated = now
+    )
+    
     for {
-      // Create the agent info
-      info = AgentInfo(
-        agentId = agentId,
-        ref = ref,
-        metadata = metadata,
-        status = AgentStatus.Active,
-        registeredAt = now,
-        lastUpdated = now
-      )
-      
       // Update the agent store
       _ <- ZIO.succeed(agents.put(agentId, info))
       

@@ -38,7 +38,7 @@ trait AgentDirectory {
    * @param query The query specifying the search criteria
    * @return List of agent references that match the criteria
    */
-  def discoverAgents(query: AgentQuery): Task[List[AgentInfo]]
+  def discoverAgents(query: TypedAgentQuery): Task[List[AgentInfo]]
   
   /**
    * Get detailed information about a specific agent.
@@ -53,7 +53,7 @@ trait AgentDirectory {
    *
    * @return Stream of directory events
    */
-  def subscribeToEvents(): Stream[Throwable, DirectoryEvent]
+  def subscribeToEvents(): Stream[DirectoryEvent]
   
   /**
    * Update the status of an agent.

@@ -67,8 +67,7 @@ lazy val root = (project in file("."))
     http,
     dashboard,
     langchain4j
-    // examples and mesh modules excluded due to compilation issues
-    // examples,
+    // mesh module excluded due to compilation issues
     // mesh
   )
 
@@ -152,31 +151,16 @@ lazy val langchain4j = (project in file("modules/langchain4j"))
   )
   .dependsOn(core)
 
-// Examples module - example applications
-lazy val examples = (project in file("modules/examples"))
-  .settings(
-    commonSettings,
-    name := "agentic-ai-examples",
-    description := "Example applications using the Agentic AI Framework",
-    // Don't publish examples
-    publish / skip := true,
-    // Add test configuration
-    Test / testOptions += Tests.Argument("-oD"),  // Show test duration
-    Test / testOptions += Tests.Argument("-l", "integration"), // Exclude integration tests by default
-    // Additional example-specific settings
-    Compile / run / fork := true,
-    Compile / run / javaOptions ++= Seq("-Xms512m", "-Xmx2g"),
-    // Ensure test dependencies are properly configured
-    Test / libraryDependencies ++= Seq(
-      "dev.zio" %% "zio-test" % zioTestVersion,
-      "dev.zio" %% "zio-test-sbt" % zioTestVersion,
-      "dev.zio" %% "zio" % zioVersion
-    ),
-    // Add source directories for tests
-    Test / unmanagedSourceDirectories += baseDirectory.value / "src" / "test" / "scala",
-    Test / unmanagedResourceDirectories += baseDirectory.value / "src" / "test" / "resources"
-  )
-  .dependsOn(core, memory, agents, http, dashboard, langchain4j)
+// Examples module - disabled (to be replaced with new examples)
+// lazy val examples = (project in file("modules/examples"))
+//   .settings(
+//     commonSettings,
+//     name := "agentic-ai-examples",
+//     description := "Example applications using the Agentic AI Framework",
+//     // Don't publish examples
+//     publish / skip := true
+//   )
+//   .dependsOn(core, memory, agents, http, dashboard, langchain4j)
 
 // Mesh module - distributed agent mesh network
 lazy val mesh = (project in file("modules/mesh"))
@@ -208,32 +192,28 @@ lazy val demo = (project in file("modules/demo"))
     Compile / run / javaOptions ++= Seq("-Xms512m", "-Xmx2g")
   )
 
+// Custom tasks (disabled until new examples module is created)
+// Use langchain4j examples instead for now
+
 // Custom task to run integration tests
 lazy val integrationTest = taskKey[Unit]("Runs integration tests")
 
-// Temporarily disable the examples-based integration test
-// integrationTest := (examples / Test / testOnly).toTask(" -- -n integration").value
+// Integration tests are temporarily disabled until new examples module is created
 integrationTest := Def.task {
-  println("Integration tests are temporarily disabled due to examples module compilation issues")
+  println("Integration tests will be reimplemented with the new examples module")
 }.value
 
 // Custom task to run Vertex AI connectivity test
 lazy val testVertexConnection = taskKey[Unit]("Tests connection to Vertex AI")
 
-// Temporarily disable the Vertex AI connection test that depends on examples module
-// testVertexConnection := (examples / Compile / runMain).toTask(" com.agenticai.demo.VertexAIClaudeDemoStandalone").value
-testVertexConnection := Def.task {
-  println("Vertex AI connection test is temporarily disabled due to examples module compilation issues")
-}.value
+// Use the Langchain4j examples for now
+testVertexConnection := (langchain4j / Compile / runMain).toTask(" com.agenticai.core.llm.langchain.examples.SimpleVertexAIExample").value
 
-// Custom task to run Claude 3.7 example
-lazy val runClaudeExample = taskKey[Unit]("Runs simple Claude 3.7 example")
+// Custom task to run Claude example
+lazy val runClaudeExample = taskKey[Unit]("Runs simple Claude example")
 
-// Temporarily disable Claude example that depends on examples module
-// runClaudeExample := (examples / Compile / runMain).toTask(" com.agenticai.examples.SimpleClaudeExample").value
-runClaudeExample := Def.task {
-  println("Claude example is temporarily disabled due to examples module compilation issues")
-}.value
+// Use the Langchain4j examples for now
+runClaudeExample := (langchain4j / Compile / runMain).toTask(" com.agenticai.core.llm.langchain.examples.SimpleClaudeExample").value
 
 // Custom tasks for Langchain4j examples
 lazy val runLangchainClaudeExample = taskKey[Unit]("Runs Langchain4j Claude example")
@@ -253,7 +233,7 @@ lazy val it = project
     commonSettings,
     Defaults.itSettings,
     libraryDependencies ++= commonDependencies,
-    // Exclude tests that depend on mesh or examples modules
-    Test / testOptions += Tests.Argument("-l", "mesh,examples")
+    // Exclude tests that depend on mesh module
+    Test / testOptions += Tests.Argument("-l", "mesh")
   )
   .dependsOn(core, memory, agents, http, dashboard, langchain4j)

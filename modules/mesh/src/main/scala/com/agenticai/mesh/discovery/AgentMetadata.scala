@@ -20,7 +20,7 @@ case class AgentMetadata(
 )
 
 /**
- * Query for discovering agents.
+ * Query for discovering agents using type constraints.
  *
  * @param capabilities Optional set of required capabilities
  * @param inputType Optional required input type
@@ -28,7 +28,7 @@ case class AgentMetadata(
  * @param properties Optional required properties
  * @param limit Maximum number of results to return
  */
-case class AgentQuery(
+case class TypedAgentQuery(
   capabilities: Set[String] = Set.empty,
   inputType: Option[String] = None,
   outputType: Option[String] = None,
@@ -37,26 +37,26 @@ case class AgentQuery(
   onlyActive: Boolean = true
 ) {
   /**
-   * Check if an agent matches this query.
+   * Check if an agent matches this query based on type constraints.
    *
    * @param info The agent information to check against the query
    * @return True if the agent matches the query
    */
   def matches(info: AgentInfo): Boolean = {
     // Check if the agent has all required capabilities
-    val hasCapabilities = capabilities.isEmpty || 
+    val hasCapabilities = capabilities.isEmpty ||
       capabilities.subsetOf(info.metadata.capabilities)
     
     // Check if the agent matches the input type
-    val matchesInput = inputType.isEmpty || 
+    val matchesInput = inputType.isEmpty ||
       inputType.contains(info.metadata.inputType)
     
     // Check if the agent matches the output type
-    val matchesOutput = outputType.isEmpty || 
+    val matchesOutput = outputType.isEmpty ||
       outputType.contains(info.metadata.outputType)
     
     // Check if the agent has all required properties
-    val hasProperties = properties.isEmpty || 
+    val hasProperties = properties.isEmpty ||
       properties.forall { case (k, v) => info.metadata.properties.get(k).contains(v) }
     
     // Check if the agent is active (if required)
