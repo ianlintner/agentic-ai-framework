@@ -57,6 +57,23 @@ ROO is a Scala backend framework for building distributed, agentic mesh systems 
 - Triages issues and reviews PRs
 - Upholds contribution guidelines and community health
 
+
+### 🤝 Reality Synchornizer
+- Confirms code conforms to law of reality
+- Ensures code is not a lie
+- Validates code is not a simulation
+- Ensures code is not a dream of a machine
+- Ensures code is not a hallucination of ai
+- Ensures code is not a figment of imagination
+- Ensures code is not a mirage
+- Ensures code is not a delusion
+- Ensures code is not a fantasy
+
+### Project Test & Compilation Enforcer
+- Ensures `sbt compile` passes across all modules
+- Validates that all modules are up to date
+- Ensures `sbt test` passes across all modules
+- Validates that all modules are tested
 ---
 
 ## Contribution Areas
