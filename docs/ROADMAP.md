@@ -10,8 +10,8 @@
 - [x] Add circuit-based memory components
 - [x] Implement bit packing for efficient data transmission
 - [x] Add memory compression capabilities
-- [ ] Implement automatic cleanup strategies
-- [ ] Add memory usage monitoring
+- [x] Implement automatic cleanup strategies
+- [x] Add memory usage monitoring
 
 ### Week 2: Parallel Processing
 - [ ] Create `ParallelProcessor` trait

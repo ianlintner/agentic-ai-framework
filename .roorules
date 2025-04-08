@@ -1,115 +1,116 @@
-# Roo Rules for Agentic AI Framework
+# .roorules
 
-## Core Principles
+## Project Overview
+ROO is a Scala backend framework for building distributed, agentic mesh systems with a focus on architecture, modularity, testing, and functional purity. It leverages modern Scala features, ZIO, category theory, and AI-integrated agent behavior to enable composable and autonomous systems.
 
-1. Always check the project goals in `goals.md` before starting any task
-2. Ensure all code aligns with the mathematical rigor and category theory foundations
-3. Maintain functional purity and ZIO-based effects management
-4. Follow Scala best practices and idiomatic functional programming patterns
+---
 
-## Build and Test Requirements
+## Roles
 
-1. Every change must compile successfully with `sbt compile`
-2. All tests must pass with `sbt test`
-3. Run integration tests with `sbt integrationTest` when modifying external integrations
-4. Verify vertex connectivity with `sbt testVertexConnection` after LLM-related changes
+### 🧠 Framework Architect
+- Owns the high-level design of ROO
+- Defines system layering (core, mesh, AI agents, etc.)
+- Ensures architectural integrity and long-term coherence
 
-## Quality Assurance
+### ⚙️ Core Engineer
+- Implements low-level framework primitives
+- Works on networking, concurrency, and runtime execution
+- Focused on performance, reliability, and scalability
 
-1. Always test new features using both automated tests and manual verification
-2. Use browser testing for UI components and web applications
-3. Validate API integrations with real endpoints and error cases
-4. Check for proper error handling and edge cases in all code
+### 🐍 Scala Language Steward
+- Maintains idiomatic Scala 3 design
+- Integrates functional concepts (Functor, Monad, etc.)
+- Upholds type safety and expressiveness
 
-## Code Style and Structure
+### 🧪 Testing & Quality Engineer
+- Develops property-based and generative tests
+- Crafts simulation environments for distributed testing
+- Ensures reproducibility and behavioral determinism
 
-1. Follow functional programming principles with immutability and referential transparency
-2. Organize code using the defined module structure
-3. Use appropriate type-level programming techniques for static verification
-4. Maintain comprehensive documentation with examples
+### 🤖 AI Agent Engineer
+- Designs and implements intelligent agent logic
+- Integrates ML/NLP/LLM systems
+- Focuses on autonomy, reasoning, and observability
 
-## Documentation Requirements
+### 🌐 Mesh & Distributed Systems Engineer
+- Implements mesh topology, agent communication, and consensus
+- Handles coordination, fault tolerance, and messaging
+- Optimizes inter-agent communication
 
-1. Update relevant documentation when implementing new features
-2. Include detailed API documentation with examples
-3. Add diagrams where appropriate to illustrate complex concepts
-4. Cross-reference implementation with theoretical foundations
+### 🧬 Functional Design Advisor
+- Advises on architecture through category theory and algebraic design
+- Encourages pure and composable abstractions
+- Guides decisions like Free vs. Tagless final vs. Effect systems
 
-## Development Workflow
+### 🛠 Developer Experience Engineer
+- Builds CLI tools, templates, and development scaffolding
+- Improves error reporting, logging, and traceability
+- Creates internal developer tooling
 
-1. Implement MVP features first, then iterate with enhancements
-2. Break complex tasks into smaller, manageable sub-tasks
-3. Create tests before or alongside implementation code
-4. Regularly validate against the project goals and vision
+### 📖 Technical Writer & Educator
+- Writes and maintains documentation, guides, and examples
+- Collaborates with architects and stewards for clarity
+- Helps onboard new contributors and users
 
-## Verification Steps
+### 🤝 Project Maintainer
+- Coordinates contributors and maintains governance
+- Triages issues and reviews PRs
+- Upholds contribution guidelines and community health
 
-Before submitting any code changes:
+---
 
-1. Ensure all builds pass: `sbt compile`
-2. Run all unit tests: `sbt test`
-3. Verify integration tests if applicable: `sbt integrationTest`
-4. Test in browser when relevant
-5. Check for compatibility with existing components
+## Contribution Areas
 
-## Claude Integration Specific Rules
+| Area                | Primary Role(s)                  |
+|---------------------|----------------------------------|
+| Core Runtime        | Core Engineer, Architect         |
+| Mesh Layer          | Mesh Engineer, Architect         |
+| Functional Design   | Scala Steward, Functional Advisor|
+| Testing Frameworks  | Testing Engineer                 |
+| AI Agent Logic      | AI Engineer                      |
+| Category Theory     | Functional Advisor               |
+| Tooling & CLI       | Dev Experience Engineer          |
+| Docs & Onboarding   | Tech Writer, Scala Steward       |
+| Governance          | Maintainer, Architect            |
 
-1. Always verify Claude/Vertex AI connectivity after changes
-2. Test with real API endpoints when possible
-3. Include proper error handling for API rate limits and failures
-4. Ensure streaming implementations handle backpressure correctly
+---
 
-## Self-Improvement Features
+## Testing & Validation
 
-1. Analyze code for optimization opportunities
-2. Look for patterns that could be abstracted into reusable components
-3. Consider if new features could benefit from self-coding capabilities
-4. Align implementation with long-term self-evolution goals
+### ✅ Test Enforcement
+- **All modules must pass `sbt test` before any feature or refactor PR is merged.**
+- CI must enforce this by running `sbt test` across **all modules**.
 
-## Theoretical Alignment
+### 🔬 Test Design
+- All new code **must include tests** relevant to its behavior.
+- Use **property-based testing** for logic-heavy components.
+- Use **integration tests** for mesh interaction and agent lifecycles.
+- Simulations must verify **multi-agent coordination under load**.
+- **ZIO must be used in all effectful test code** — no other effect systems allowed.
 
-1. Ensure implementations follow category theory principles
-2. Use appropriate monads, functors, and other algebraic structures
-3. Maintain mathematical rigor in compositional patterns
-4. Document theoretical foundations of complex implementations
+### 🚫 What Not to Do
+- Do **not** skip tests locally or on CI.
+- Do **not** submit PRs with broken modules, even if unrelated.
+- Do **not** use `Future`, `IO`, or any effect system **other than ZIO**.
 
-## Testing Matrix
+---
 
-| Feature Type | Required Tests |
-|--------------|---------------|
-| Core | Unit, Property-based |
-| LLM Integration | Unit, Integration, API |
-| Memory Systems | Unit, Property-based, Performance |
-| UI Components | Unit, Integration, Browser |
-| Agents | Unit, Behavioral, System |
+## Guidelines
 
-These rules should be followed for all contributions to ensure high quality, maintainable code that aligns with the project's ambitious vision.
+- All effectful code must use **ZIO** — this is a core project constraint.
+- Code must be **pure and referentially transparent** by default.
+- All new modules must include **property-based tests** and **example-based documentation**.
+- **Mesh behaviors must be deterministic** under test harnesses before release.
+- **Abstractions must be lawful** (e.g., typeclass instances obey algebraic laws).
+- Prefer **existing ZIO libraries** or **Java interop libraries** (e.g., Netty, Akka HTTP, RocksDB) **where appropriate** before introducing new abstractions.
 
-## Temporal Testing with ZIO TestClock
+---
 
-Proper testing of time-dependent functionality is critical for reliable systems. Follow these guidelines:
+## Notes
 
-1. **TestClock Fundamentals**
-   - TestClock doesn't advance automatically - it only moves when explicitly instructed
-   - Scheduled operations remain suspended until the TestClock advances past their time
-   - Time advancement must be explicitly managed in tests
-
-2. **Required TestClock Patterns**
-   - Always use `ZIO.clockWith(_.instant)` instead of `Instant.now()` in production code
-   - Fork scheduled operations in a separate fiber before testing them
-   - Use `TestClock.adjust(duration)` to advance time in controlled increments
-   - Include a small `ZIO.sleep` after adjusting the clock to allow effects to complete
-   - Verify state changes after each clock adjustment
-
-3. **TestClock Implementation Validation**
-   - Verify that temporal tests pass consistently without flakiness
-   - Ensure tests are not affected by system load or execution environment
-   - Confirm that scheduled operations execute at the expected times
-   - Test boundary conditions like zero-time delays and very long delays
-
-4. **Common TestClock Anti-patterns to Avoid**
-   - Mixing real-time and test-time in the same test
-   - Scheduling operations without forking them first
-   - Using fixed sleeps instead of TestClock adjustments
-   - Expecting operations to complete without advancing the clock
-   - Forgetting to allow suspended effects to complete after clock adjustment
+- This project embraces **reuse over reinvention**:
+  - If a ZIO library already exists (e.g., `zio-json`, `zio-http`, `zio-config`), prefer it.
+  - Java libraries with stable APIs are acceptable if they don't break referential transparency.
+- All roles can be shared or overlapped based on contributor interests.
+- Unsure where to start? Open an issue or check the `good-first-task` label.
+- Want to propose a new role or contribution area? Create a PR updating this `.roorules` file.

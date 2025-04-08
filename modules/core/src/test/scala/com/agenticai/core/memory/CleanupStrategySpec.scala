@@ -3,166 +3,213 @@ package com.agenticai.core.memory
 import zio._
 import zio.test._
 import zio.test.Assertion._
-import java.time.{Duration => JavaDuration, Instant}
 import zio.test.TestAspect._
-import java.util.concurrent.TimeUnit
+import java.time.{Duration => JavaDuration, Instant}
 
 object CleanupStrategySpec extends ZIOSpecDefault {
-  def spec = suite("CleanupStrategy")(
-    test("timeBasedAccess should mark old cells for cleanup") {
-      for {
-        // Create a cell with default access time
-        cell <- MemoryCell.make("test value")
-        
-        // Create a strategy that cleans up cells older than 1 minute
-        strategy <- ZIO.succeed(CleanupStrategy.timeBasedAccess(JavaDuration.ofMinutes(1)))
-        
-        // Advance the test clock by 2 minutes to make the cell "old"
-        _ <- TestClock.adjust(Duration.fromMillis(2 * 60 * 1000))
-        
-        // Check if the strategy marks the cell for cleanup
-        shouldCleanup <- strategy.shouldCleanup(cell)
-        
-        // Log values for debugging
-        _ <- ZIO.logDebug(s"Should cleanup: $shouldCleanup")
-        meta <- cell.getMetadata
-        now <- ZIO.clockWith(_.instant)
-        _ <- ZIO.logDebug(s"lastAccessed: ${meta.lastAccessed}, now: $now, diff: ${JavaDuration.between(meta.lastAccessed, now).toMillis}ms")
-      } yield assertTrue(shouldCleanup)
-    },
+  
+  override def spec = suite("CleanupStrategy")(
     
-    test("timeBasedAccess should not mark recent cells for cleanup") {
+    test("timeBasedAccess should mark cells for cleanup based on access time") {
       for {
-        // Create a cell with recent access time
-        cell <- MemoryCell.make("test value")
-        // Read the cell to update the access time
+        // Create a memory system and cells
+        memorySystem <- MemorySystem.make
+        cell <- memorySystem.createCell[String]("test-cell")
+        
+        // Write initial data
+        _ <- cell.write("test data")
+        
+        // Create a strategy that cleans up cells not accessed for 5 seconds
+        strategy = CleanupStrategy.timeBasedAccess(JavaDuration.ofSeconds(5))
+        
+        // Check initially (should not be marked for cleanup)
+        initialShouldCleanup <- strategy.shouldCleanup(cell)
+        
+        // Advance time by 6 seconds
+        _ <- TestClock.adjust(6.seconds)
+        
+        // Check after time advancement (should be marked for cleanup)
+        afterShouldCleanup <- strategy.shouldCleanup(cell)
+        
+        // Read the cell to update access time
         _ <- cell.read
-        // Create a strategy that cleans up cells older than 1 hour
-        strategy <- ZIO.succeed(CleanupStrategy.timeBasedAccess(JavaDuration.ofHours(1)))
-        // Check if the strategy marks the cell for cleanup
-        shouldCleanup <- strategy.shouldCleanup(cell)
-      } yield assertTrue(!shouldCleanup)
-    },
-    
-    test("timeBasedModification should mark cells not modified recently for cleanup") {
-      for {
-        // Create a cell
-        cell <- MemoryCell.make("test value")
         
-        // Create a strategy that cleans up cells not modified for 1 minute
-        strategy <- ZIO.succeed(CleanupStrategy.timeBasedModification(JavaDuration.ofMinutes(1)))
+        // Check after access (should not be marked for cleanup)
+        afterAccessShouldCleanup <- strategy.shouldCleanup(cell)
+      } yield {
+        assert(initialShouldCleanup)(isFalse) &&
+        assert(afterShouldCleanup)(isTrue) &&
+        assert(afterAccessShouldCleanup)(isFalse)
+      }
+    },
+    
+    test("timeBasedModification should mark cells for cleanup based on modification time") {
+      for {
+        // Create a memory system and cells
+        memorySystem <- MemorySystem.make
+        cell <- memorySystem.createCell[String]("test-cell")
         
-        // Advance the test clock by 2 minutes to make the cell "old"
-        _ <- TestClock.adjust(Duration.fromMillis(2 * 60 * 1000))
+        // Write initial data
+        _ <- cell.write("test data")
         
-        // Check if the strategy marks the cell for cleanup
-        shouldCleanup <- strategy.shouldCleanup(cell)
+        // Create a strategy that cleans up cells not modified for 5 seconds
+        strategy = CleanupStrategy.timeBasedModification(JavaDuration.ofSeconds(5))
         
-        // Log values for debugging
-        _ <- ZIO.logDebug(s"Should cleanup: $shouldCleanup")
-        meta <- cell.getMetadata
-        now <- ZIO.clockWith(_.instant)
-        _ <- ZIO.logDebug(s"lastModified: ${meta.lastModified}, now: $now, diff: ${JavaDuration.between(meta.lastModified, now).toMillis}ms")
-      } yield assertTrue(shouldCleanup)
+        // Check initially (should not be marked for cleanup)
+        initialShouldCleanup <- strategy.shouldCleanup(cell)
+        
+        // Advance time by 6 seconds
+        _ <- TestClock.adjust(6.seconds)
+        
+        // Check after time advancement (should be marked for cleanup)
+        afterShouldCleanup <- strategy.shouldCleanup(cell)
+        
+        // Read the cell (should not affect modification time)
+        _ <- cell.read
+        afterReadShouldCleanup <- strategy.shouldCleanup(cell)
+        
+        // Modify the cell
+        _ <- cell.write("updated data")
+        
+        // Check after modification (should not be marked for cleanup)
+        afterModificationShouldCleanup <- strategy.shouldCleanup(cell)
+      } yield {
+        assert(initialShouldCleanup)(isFalse) &&
+        assert(afterShouldCleanup)(isTrue) &&
+        assert(afterReadShouldCleanup)(isTrue) &&
+        assert(afterModificationShouldCleanup)(isFalse)
+      }
     },
     
-    test("sizeBasedCleanup should mark large cells for cleanup") {
+    test("sizeBasedCleanup should mark cells for cleanup based on size") {
       for {
-        // Create a cell with a large value
-        cell <- MemoryCell.make("initial")
-        // Write a large value to update the size
-        largeValue = "a" * 10000 // 10KB string
-        _ <- cell.write(largeValue)
-        // Create a strategy that cleans up cells larger than 5KB
-        strategy <- ZIO.succeed(CleanupStrategy.sizeBasedCleanup(5000))
-        // Check if the strategy marks the cell for cleanup
-        shouldCleanup <- strategy.shouldCleanup(cell)
-      } yield assertTrue(shouldCleanup)
+        // Create a memory system and cells
+        memorySystem <- MemorySystem.make
+        smallCell <- memorySystem.createCell[String]("small-cell")
+        largeCell <- memorySystem.createCell[String]("large-cell")
+        
+        // Write data of different sizes
+        _ <- smallCell.write("small data")
+        _ <- largeCell.write("large " * 100) // Much larger data
+        
+        // Create a strategy that cleans up cells larger than 50 bytes
+        strategy = CleanupStrategy.sizeBasedCleanup(50)
+        
+        // Check both cells
+        smallCellShouldCleanup <- strategy.shouldCleanup(smallCell)
+        largeCellShouldCleanup <- strategy.shouldCleanup(largeCell)
+      } yield {
+        assert(smallCellShouldCleanup)(isFalse) &&
+        assert(largeCellShouldCleanup)(isTrue)
+      }
     },
     
-    test("sizeBasedCleanup should not mark small cells for cleanup") {
+    test("tagBasedCleanup should mark cells for cleanup based on tags") {
       for {
-        // Create a cell with a small value
-        cell <- MemoryCell.make("initial")
-        // Write a small value to update the size
-        smallValue = "small"
-        _ <- cell.write(smallValue)
-        // Create a strategy that cleans up cells larger than 5KB
-        strategy <- ZIO.succeed(CleanupStrategy.sizeBasedCleanup(5000))
-        // Check if the strategy marks the cell for cleanup
-        shouldCleanup <- strategy.shouldCleanup(cell)
-      } yield assertTrue(!shouldCleanup)
+        // Create a memory system and cells
+        memorySystem <- MemorySystem.make
+        cell1 <- memorySystem.createCell[String]("cell1")
+        cell2 <- memorySystem.createCell[String]("cell2")
+        cell3 <- memorySystem.createCell[String]("cell3")
+        
+        // Add tags
+        _ <- cell1.addTag("important")
+        _ <- cell2.addTag("temporary")
+        _ <- cell3.addTag("important")
+        _ <- cell3.addTag("temporary")
+        
+        // Create a strategy that cleans up cells with the "temporary" tag
+        strategy = CleanupStrategy.tagBasedCleanup(Set("temporary"))
+        
+        // Check all cells
+        cell1ShouldCleanup <- strategy.shouldCleanup(cell1)
+        cell2ShouldCleanup <- strategy.shouldCleanup(cell2)
+        cell3ShouldCleanup <- strategy.shouldCleanup(cell3)
+      } yield {
+        assert(cell1ShouldCleanup)(isFalse) &&
+        assert(cell2ShouldCleanup)(isTrue) &&
+        assert(cell3ShouldCleanup)(isTrue)
+      }
     },
     
-    test("tagBasedCleanup should mark cells with specific tags for cleanup") {
+    test("any combinator should combine strategies with OR logic") {
       for {
-        // Create a cell with specific tags
-        cell <- MemoryCell.makeWithTags("test value", Set("temp", "cache"))
-        // Create a strategy that cleans up cells with the 'temp' tag
-        strategy <- ZIO.succeed(CleanupStrategy.tagBasedCleanup(Set("temp")))
-        // Check if the strategy marks the cell for cleanup
-        shouldCleanup <- strategy.shouldCleanup(cell)
-      } yield assertTrue(shouldCleanup)
-    },
-    
-    test("tagBasedCleanup should not mark cells without specific tags for cleanup") {
-      for {
-        // Create a cell with different tags
-        cell <- MemoryCell.makeWithTags("test value", Set("permanent", "important"))
-        // Create a strategy that cleans up cells with the 'temp' tag
-        strategy <- ZIO.succeed(CleanupStrategy.tagBasedCleanup(Set("temp")))
-        // Check if the strategy marks the cell for cleanup
-        shouldCleanup <- strategy.shouldCleanup(cell)
-      } yield assertTrue(!shouldCleanup)
-    },
-    
-    test("any combinator should mark cells for cleanup if any strategy matches") {
-      for {
-        // Create a cell with specific tags and small size
-        cell <- MemoryCell.makeWithTags("small", Set("permanent", "important"))
-        // Write a value to update the size
-        _ <- cell.write("small")
+        // Create a memory system and cells
+        memorySystem <- MemorySystem.make
+        cell1 <- memorySystem.createCell[String]("cell1") // Tagged with "important"
+        cell2 <- memorySystem.createCell[String]("cell2") // Large data
+        cell3 <- memorySystem.createCell[String]("cell3") // Both large and tagged with "temporary"
+        cell4 <- memorySystem.createCell[String]("cell4") // Neither large nor tagged
+        
+        // Add data and tags
+        _ <- cell1.addTag("important")
+        _ <- cell1.write("small data")
+        
+        _ <- cell2.write("large " * 100)
+        
+        _ <- cell3.addTag("temporary")
+        _ <- cell3.write("large " * 100)
+        
+        _ <- cell4.write("small data")
+        
         // Create strategies
-        sizeStrategy <- ZIO.succeed(CleanupStrategy.sizeBasedCleanup(5000)) // Won't match
-        tagStrategy <- ZIO.succeed(CleanupStrategy.tagBasedCleanup(Set("important"))) // Will match
+        sizeStrategy = CleanupStrategy.sizeBasedCleanup(50)
+        tagStrategy = CleanupStrategy.tagBasedCleanup(Set("temporary"))
+        
         // Combine strategies with OR logic
-        combinedStrategy <- ZIO.succeed(CleanupStrategy.any(sizeStrategy, tagStrategy))
-        // Check if the combined strategy marks the cell for cleanup
-        shouldCleanup <- combinedStrategy.shouldCleanup(cell)
-      } yield assertTrue(shouldCleanup)
+        combinedStrategy = CleanupStrategy.any(sizeStrategy, tagStrategy)
+        
+        // Check all cells
+        cell1ShouldCleanup <- combinedStrategy.shouldCleanup(cell1)
+        cell2ShouldCleanup <- combinedStrategy.shouldCleanup(cell2)
+        cell3ShouldCleanup <- combinedStrategy.shouldCleanup(cell3)
+        cell4ShouldCleanup <- combinedStrategy.shouldCleanup(cell4)
+      } yield {
+        assert(cell1ShouldCleanup)(isFalse) &&
+        assert(cell2ShouldCleanup)(isTrue) &&
+        assert(cell3ShouldCleanup)(isTrue) &&
+        assert(cell4ShouldCleanup)(isFalse)
+      }
     },
     
-    test("all combinator should mark cells for cleanup only if all strategies match") {
+    test("all combinator should combine strategies with AND logic") {
       for {
-        // Create a cell with specific tags and large size
-        cell <- MemoryCell.makeWithTags("initial", Set("temp", "cache"))
-        // Write a large value to update the size
-        largeValue = "a" * 10000 // 10KB string
-        _ <- cell.write(largeValue)
+        // Create a memory system and cells
+        memorySystem <- MemorySystem.make
+        cell1 <- memorySystem.createCell[String]("cell1") // Tagged with "important"
+        cell2 <- memorySystem.createCell[String]("cell2") // Large data
+        cell3 <- memorySystem.createCell[String]("cell3") // Both large and tagged with "temporary"
+        cell4 <- memorySystem.createCell[String]("cell4") // Neither large nor tagged
+        
+        // Add data and tags
+        _ <- cell1.addTag("important")
+        _ <- cell1.write("small data")
+        
+        _ <- cell2.write("large " * 100)
+        
+        _ <- cell3.addTag("temporary")
+        _ <- cell3.write("large " * 100)
+        
+        _ <- cell4.write("small data")
+        
         // Create strategies
-        sizeStrategy <- ZIO.succeed(CleanupStrategy.sizeBasedCleanup(5000)) // Will match
-        tagStrategy <- ZIO.succeed(CleanupStrategy.tagBasedCleanup(Set("temp"))) // Will match
+        sizeStrategy = CleanupStrategy.sizeBasedCleanup(50)
+        tagStrategy = CleanupStrategy.tagBasedCleanup(Set("temporary"))
+        
         // Combine strategies with AND logic
-        combinedStrategy <- ZIO.succeed(CleanupStrategy.all(sizeStrategy, tagStrategy))
-        // Check if the combined strategy marks the cell for cleanup
-        shouldCleanup <- combinedStrategy.shouldCleanup(cell)
-      } yield assertTrue(shouldCleanup)
-    },
-    
-    test("all combinator should not mark cells for cleanup if any strategy doesn't match") {
-      for {
-        // Create a cell with specific tags but small size
-        cell <- MemoryCell.makeWithTags("initial", Set("temp", "cache"))
-        // Write a small value to update the size
-        _ <- cell.write("small")
-        // Create strategies
-        sizeStrategy <- ZIO.succeed(CleanupStrategy.sizeBasedCleanup(5000)) // Won't match
-        tagStrategy <- ZIO.succeed(CleanupStrategy.tagBasedCleanup(Set("temp"))) // Will match
-        // Combine strategies with AND logic
-        combinedStrategy <- ZIO.succeed(CleanupStrategy.all(sizeStrategy, tagStrategy))
-        // Check if the combined strategy marks the cell for cleanup
-        shouldCleanup <- combinedStrategy.shouldCleanup(cell)
-      } yield assertTrue(!shouldCleanup)
+        combinedStrategy = CleanupStrategy.all(sizeStrategy, tagStrategy)
+        
+        // Check all cells
+        cell1ShouldCleanup <- combinedStrategy.shouldCleanup(cell1)
+        cell2ShouldCleanup <- combinedStrategy.shouldCleanup(cell2)
+        cell3ShouldCleanup <- combinedStrategy.shouldCleanup(cell3)
+        cell4ShouldCleanup <- combinedStrategy.shouldCleanup(cell4)
+      } yield {
+        assert(cell1ShouldCleanup)(isFalse) &&
+        assert(cell2ShouldCleanup)(isFalse) &&
+        assert(cell3ShouldCleanup)(isTrue) &&
+        assert(cell4ShouldCleanup)(isFalse)
+      }
     }
-  ) @@ TestAspect.sequential
+  ) @@ timeout(10.seconds) @@ sequential
 }

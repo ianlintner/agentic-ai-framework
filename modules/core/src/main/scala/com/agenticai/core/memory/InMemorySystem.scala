@@ -1,6 +1,7 @@
 package com.agenticai.core.memory
 
 import zio._
+import java.time.{Duration => JavaDuration}
 
 /**
  * Simple in-memory implementation of MemorySystem
@@ -10,6 +11,8 @@ class InMemorySystem extends MemorySystem {
   private val cells = scala.collection.mutable.Map[String, MemoryCell[_]]()
   // Map to store cleanup strategies
   private val strategies = scala.collection.mutable.Map[String, CleanupStrategy]()
+  // Fiber for automatic cleanup
+  private var cleanupFiber: Option[Fiber.Runtime[Throwable, Unit]] = None
   
   override def createCell[T](name: String): ZIO[Any, Throwable, MemoryCell[T]] = {
     for {
@@ -50,14 +53,34 @@ class InMemorySystem extends MemorySystem {
     } yield cell
   }
   
-  override def enableAutomaticCleanup(interval: java.time.Duration): ZIO[Any, MemoryError, Unit] = {
-    // In-memory implementation doesn't need to do anything special
-    ZIO.succeed(())
+  override def enableAutomaticCleanup(interval: JavaDuration): ZIO[Any, MemoryError, Unit] = {
+    for {
+      _ <- disableAutomaticCleanup
+      fiber <- scheduleCleanup(interval).fork
+      _ <- ZIO.succeed {
+        cleanupFiber = Some(fiber)
+      }
+    } yield ()
   }
   
   override def disableAutomaticCleanup: ZIO[Any, MemoryError, Unit] = {
-    // In-memory implementation doesn't need to do anything special
-    ZIO.succeed(())
+    for {
+      _ <- ZIO.foreachDiscard(cleanupFiber)(_.interrupt)
+      _ <- ZIO.succeed {
+        cleanupFiber = None
+      }
+    } yield ()
+  }
+  
+  private def scheduleCleanup(interval: JavaDuration): ZIO[Any, MemoryError, Unit] = {
+    val intervalDuration = zio.Duration.fromMillis(interval.toMillis)
+    val schedule = Schedule.fixed(intervalDuration)
+    
+    runCleanup
+      .tap(count => ZIO.logInfo(s"Automatic cleanup removed $count cells"))
+      .repeat(schedule)
+      .unit
+      .catchAll(e => ZIO.logError(s"Error during automatic cleanup: ${e.getMessage}"))
   }
   
   override def runCleanup: ZIO[Any, MemoryError, Int] = {
