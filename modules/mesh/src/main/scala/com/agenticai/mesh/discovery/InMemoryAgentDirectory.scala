@@ -16,10 +16,13 @@ class InMemoryAgentDirectory extends AgentDirectory {
   // In-memory storage for agent information
   private val agents = TrieMap.empty[UUID, AgentInfo]
   
-  // Queue for directory events
-  private val eventHub = Runtime.default.unsafe.run(
-    Hub.bounded[DirectoryEvent](100)
-  ).getOrThrow()
+  // Event listener management
+  private val eventListeners = new java.util.concurrent.CopyOnWriteArrayList[DirectoryEvent => Unit]()
+  
+  private def publishEvent(event: DirectoryEvent): Unit = {
+    import scala.jdk.CollectionConverters._
+    eventListeners.asScala.foreach(listener => listener(event))
+  }
   
   /**
    * Register an agent with its capabilities and metadata.
@@ -41,37 +44,35 @@ class InMemoryAgentDirectory extends AgentDirectory {
       lastUpdated = now
     )
     
-    for {
+    ZIO.succeed {
       // Update the agent store
-      _ <- ZIO.succeed(agents.put(agentId, info))
+      agents.put(agentId, info)
       
       // Publish the registration event
-      event = DirectoryEvent.AgentRegistered(agentId, info)
-      _ <- eventHub.publish(event)
-    } yield ()
+      publishEvent(DirectoryEvent.AgentRegistered(agentId, info))
+    }
   }
   
   /**
    * Unregister an agent from the directory.
    */
   override def unregisterAgent(agentId: UUID): Task[Unit] = {
-    for {
+    ZIO.succeed {
       // Remove the agent from the store
-      _ <- ZIO.succeed(agents.remove(agentId))
+      agents.remove(agentId)
       
       // Publish the unregistration event
-      event = DirectoryEvent.AgentUnregistered(agentId)
-      _ <- eventHub.publish(event)
-    } yield ()
+      publishEvent(DirectoryEvent.AgentUnregistered(agentId))
+    }
   }
   
   /**
    * Discover agents matching specific criteria.
    */
-  override def discoverAgents(query: AgentQuery): Task[List[AgentInfo]] = {
+  override def discoverAgents(query: TypedAgentQuery): Task[List[AgentInfo]] = {
     ZIO.succeed {
       agents.values
-        .filter(query.matches)
+        .filter(info => query.matches(info))
         .toList
         .sortBy(-_.registeredAt.toEpochMilli) // Sort by registration time (newest first)
         .take(query.limit)
@@ -88,8 +89,12 @@ class InMemoryAgentDirectory extends AgentDirectory {
   /**
    * Subscribe to events from the agent directory.
    */
-  override def subscribeToEvents(): Stream[Throwable, DirectoryEvent] = {
-    ZStream.fromHub(eventHub)
+  override def subscribeToEvents(): Stream[DirectoryEvent] = {
+    new Stream[DirectoryEvent] {
+      def forEach(listener: DirectoryEvent => Unit): Unit = {
+        eventListeners.add(listener)
+      }
+    }
   }
   
   /**
@@ -98,21 +103,24 @@ class InMemoryAgentDirectory extends AgentDirectory {
   override def updateAgentStatus(agentId: UUID, status: AgentStatus): Task[Unit] = {
     for {
       // Get the current agent info
-      maybeInfo <- ZIO.succeed(agents.get(agentId))
-      info <- ZIO.fromOption(maybeInfo)
-        .orElseFail(new NoSuchElementException(s"Agent not found: $agentId"))
-      
-      // Create updated info with new status
-      oldStatus = info.status
-      updatedInfo = info.withStatus(status)
-      
-      // Update the agent store
-      _ <- ZIO.succeed(agents.put(agentId, updatedInfo))
-      
-      // Publish the status change event
-      event = DirectoryEvent.AgentStatusChanged(agentId, oldStatus, status)
-      _ <- eventHub.publish(event)
-    } yield ()
+      maybeInfoOpt <- ZIO.succeed(agents.get(agentId))
+      _ <- ZIO.when(maybeInfoOpt.isEmpty)(
+        ZIO.fail(new NoSuchElementException(s"Agent not found: $agentId"))
+      )
+      result <- ZIO.succeed {
+        maybeInfoOpt.foreach { info =>
+          // Create updated info with new status
+          val oldStatus = info.status
+          val updatedInfo = info.withStatus(status)
+          
+          // Update the agent store
+          agents.put(agentId, updatedInfo)
+          
+          // Publish the status change event
+          publishEvent(DirectoryEvent.AgentStatusChanged(agentId, oldStatus, status))
+        }
+      }
+    } yield result
   }
   
   /**
@@ -124,58 +132,56 @@ class InMemoryAgentDirectory extends AgentDirectory {
   
   /**
    * Update an agent's metadata.
-   *
-   * @param agentId The ID of the agent
-   * @param metadata The new metadata
-   * @return Task that completes when the update is successful
    */
   def updateAgentMetadata(agentId: UUID, metadata: AgentMetadata): Task[Unit] = {
     for {
       // Get the current agent info
-      maybeInfo <- ZIO.succeed(agents.get(agentId))
-      info <- ZIO.fromOption(maybeInfo)
-        .orElseFail(new NoSuchElementException(s"Agent not found: $agentId"))
-      
-      // Create updated info with new metadata
-      oldMetadata = info.metadata
-      updatedInfo = info.copy(
-        metadata = metadata,
-        lastUpdated = Instant.now()
+      maybeInfoOpt <- ZIO.succeed(agents.get(agentId))
+      _ <- ZIO.when(maybeInfoOpt.isEmpty)(
+        ZIO.fail(new NoSuchElementException(s"Agent not found: $agentId"))
       )
-      
-      // Update the agent store
-      _ <- ZIO.succeed(agents.put(agentId, updatedInfo))
-      
-      // Publish the metadata update event
-      event = DirectoryEvent.AgentMetadataUpdated(agentId, oldMetadata, metadata)
-      _ <- eventHub.publish(event)
-    } yield ()
+      result <- ZIO.succeed {
+        maybeInfoOpt.foreach { info =>
+          // Create updated info with new metadata
+          val oldMetadata = info.metadata
+          val updatedInfo = info.copy(
+            metadata = metadata,
+            lastUpdated = Instant.now()
+          )
+          
+          // Update the agent store
+          agents.put(agentId, updatedInfo)
+          
+          // Publish the metadata update event
+          publishEvent(DirectoryEvent.AgentMetadataUpdated(agentId, oldMetadata, metadata))
+        }
+      }
+    } yield result
   }
   
   /**
    * Update an agent's load factor.
-   *
-   * @param agentId The ID of the agent
-   * @param loadFactor The new load factor (0.0-1.0)
-   * @return Task that completes when the update is successful
    */
   def updateAgentLoadFactor(agentId: UUID, loadFactor: Double): Task[Unit] = {
     for {
       // Get the current agent info
-      maybeInfo <- ZIO.succeed(agents.get(agentId))
-      info <- ZIO.fromOption(maybeInfo)
-        .orElseFail(new NoSuchElementException(s"Agent not found: $agentId"))
-      
-      // Create updated info with new load factor
-      oldLoadFactor = info.loadFactor
-      updatedInfo = info.withLoadFactor(loadFactor)
-      
-      // Update the agent store
-      _ <- ZIO.succeed(agents.put(agentId, updatedInfo))
-      
-      // Publish the load factor change event
-      event = DirectoryEvent.AgentLoadChanged(agentId, oldLoadFactor, loadFactor)
-      _ <- eventHub.publish(event)
-    } yield ()
+      maybeInfoOpt <- ZIO.succeed(agents.get(agentId))
+      _ <- ZIO.when(maybeInfoOpt.isEmpty)(
+        ZIO.fail(new NoSuchElementException(s"Agent not found: $agentId"))
+      )
+      result <- ZIO.succeed {
+        maybeInfoOpt.foreach { info =>
+          // Create updated info with new load factor
+          val oldLoadFactor = info.loadFactor
+          val updatedInfo = info.withLoadFactor(loadFactor)
+          
+          // Update the agent store
+          agents.put(agentId, updatedInfo)
+          
+          // Publish the load factor change event
+          publishEvent(DirectoryEvent.AgentLoadChanged(agentId, oldLoadFactor, loadFactor))
+        }
+      }
+    } yield result
   }
 }

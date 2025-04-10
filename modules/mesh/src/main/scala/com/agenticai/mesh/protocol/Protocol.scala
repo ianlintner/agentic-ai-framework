@@ -95,8 +95,8 @@ object Protocol {
         ref = RemoteAgentRef[I, O](
           id,
           destination,
-          serialization.getTypeName[I],
-          serialization.getTypeName[O]
+          agent.getClass.getName + "_Input",
+          agent.getClass.getName + "_Output"
         )
         
         // Store the agent in the registry
@@ -153,8 +153,8 @@ object Protocol {
               throw new NoSuchElementException(s"No agent found with ID $agentId")
             )
             
-            // Deserialize the input
-            input <- serialization.deserialize(message.payload)
+            // Deserialize the input - using explicit type Any to avoid ClassTag issues
+            input <- serialization.deserialize[Any](message.payload)
             
             // Process the input
             output <- agent.asInstanceOf[Agent[Any, Any]].process(input)

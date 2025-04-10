@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS Test - Agentic AI Workflow</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .test-panel {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+        .test-results {
+            margin-top: 20px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            color: var(--success-color);
+            font-weight: bold;
+        }
+        .error {
+            color: var(--error-color);
+            font-weight: bold;
+        }
+        .warning {
+            color: var(--warning-color);
+            font-weight: bold;
+        }
+        .info {
+            color: var(--primary-color);
+        }
+        .code {
+            background-color: var(--bg-color);
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 3px solid var(--primary-color);
+            margin: 10px 0;
+            overflow: auto;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .status-indicator.online {
+            background-color: var(--success-color);
+        }
+        .status-indicator.offline {
+            background-color: var(--error-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>CORS Test for Workflow API</h1>
+            <p>This page tests CORS functionality from a file:// URL to the Workflow API server</p>
+        </header>
+
+        <div class="test-panel">
+            <h3><i class="fas fa-exclamation-triangle"></i> Important Instructions</h3>
+            <ol>
+                <li>Start the Workflow Demo server first by running <code>./modules/workflow-demo/run-workflow-demo.sh</code></li>
+                <li>The server should be running on <code>http://localhost:8080</code></li>
+                <li>Open this HTML file directly in your browser (via file:// protocol)</li>
+                <li>Click the test buttons below to verify CORS functionality</li>
+            </ol>
+            <div class="server-status">
+                <h4>Server Status: <span id="server-status"><span class="status-indicator offline"></span>Checking...</span></h4>
+            </div>
+        </div>
+
+        <div class="test-panel">
+            <h3><i class="fas fa-vial"></i> CORS Test Suite</h3>
+            
+            <div>
+                <h4>1. Simple GET Request</h4>
+                <p>Tests a basic GET request to server root (no preflight needed)</p>
+                <button id="test-get" class="btn primary">Run Simple GET Test</button>
+                <div id="get-results" class="test-results"></div>
+            </div>
+            
+            <div style="margin-top: 30px;">
+                <h4>2. POST Request with JSON (triggers preflight OPTIONS)</h4>
+                <p>Tests a POST request with JSON payload that will trigger a CORS preflight OPTIONS check</p>
+                <button id="test-post" class="btn action">Run POST with Preflight Test</button>
+                <div id="post-results" class="test-results"></div>
+            </div>
+            
+            <div style="margin-top: 30px;">
+                <h4>3. Complete Workflow Execution Test</h4>
+                <p>Tests creating a workflow, checking status, and retrieving results</p>
+                <button id="test-workflow" class="btn secondary">Run Complete Workflow Test</button>
+                <div id="workflow-results" class="test-results"></div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Agentic AI Framework - CORS Test Page</p>
+        <p><small>Built with ZIO HTTP &amp; Scala</small></p>
+    </footer>
+
+    <script>
+        // Base URL for the API
+        const API_BASE_URL = 'http://localhost:8080';
+        let workflowId = null;
+
+        // Helper function to log results with formatting
+        function logResult(elementId, message, type = 'info') {
+            const resultElement = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            resultElement.innerHTML += `<div class="${type}">[${timestamp}] ${message}</div>`;
+        }
+
+        // Helper function to log a request and response
+        function logRequestResponse(elementId, method, url, response, statusCode, responseText) {
+            logResult(elementId, `${method} ${url}`, 'info');
+            
+            if (statusCode >= 200 && statusCode < 300) {
+                logResult(elementId, `Status: ${statusCode} OK`, 'success');
+            } else {
+                logResult(elementId, `Status: ${statusCode} Error`, 'error');
+            }
+            
+            logResult(elementId, `Response: ${responseText}`);
+            logResult(elementId, '-------------------------------------------');
+        }
+
+        // Check server status
+        async function checkServerStatus() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/`);
+                if (response.ok) {
+                    document.getElementById('server-status').innerHTML = 
+                        '<span class="status-indicator online"></span>Online';
+                } else {
+                    document.getElementById('server-status').innerHTML = 
+                        '<span class="status-indicator offline"></span>Server Error';
+                }
+            } catch (error) {
+                document.getElementById('server-status').innerHTML = 
+                    '<span class="status-indicator offline"></span>Offline';
+            }
+        }
+
+        // Test simple GET request
+        async function testGetRequest() {
+            const resultElement = document.getElementById('get-results');
+            resultElement.innerHTML = ''; // Clear previous results
+            
+            logResult('get-results', 'Starting simple GET request test...', 'info');
+            
+            try {
+                const startTime = performance.now();
+                const response = await fetch(`${API_BASE_URL}/`);
+                const endTime = performance.now();
+                const responseText = await response.text();
+                
+                logRequestResponse(
+                    'get-results', 
+                    'GET', 
+                    `${API_BASE_URL}/`, 
+                    response, 
+                    response.status,
+                    responseText
+                );
+                
+                logResult('get-results', `Request completed in ${(endTime - startTime).toFixed(2)}ms`, 'info');
+                
+                if (response.ok) {
+                    logResult('get-results', 'CORS TEST PASSED! ✅ Simple GET request worked successfully.', 'success');
+                } else {
+                    logResult('get-results', 'Test failed! Server returned an error.', 'error');
+                }
+            } catch (error) {
+                logResult('get-results', `Error: ${error.message}`, 'error');
+                logResult('get-results', 'CORS TEST FAILED! ❌ This likely means CORS is not configured correctly.', 'error');
+            }
+        }
+
+        // Test POST request with JSON (triggers preflight)
+        async function testPostRequest() {
+            const resultElement = document.getElementById('post-results');
+            resultElement.innerHTML = ''; // Clear previous results
+            
+            logResult('post-results', 'Starting POST request test (with preflight OPTIONS)...', 'info');
+            
+            try {
+                const startTime = performance.now();
+                const response = await fetch(`${API_BASE_URL}/api/workflow/execute`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ test: true })
+                });
+                const endTime = performance.now();
+                const responseData = await response.json();
+                
+                logRequestResponse(
+                    'post-results', 
+                    'POST', 
+                    `${API_BASE_URL}/api/workflow/execute`, 
+                    response, 
+                    response.status,
+                    JSON.stringify(responseData, null, 2)
+                );
+                
+                logResult('post-results', `Request completed in ${(endTime - startTime).toFixed(2)}ms`, 'info');
+                
+                if (response.ok) {
+                    workflowId = responseData.id;
+                    logResult('post-results', 'CORS TEST PASSED! ✅ POST request with preflight worked successfully.', 'success');
+                    logResult('post-results', `Created workflow with ID: ${workflowId}`, 'info');
+                } else {
+                    logResult('post-results', 'Test failed! Server returned an error.', 'error');
+                }
+            } catch (error) {
+                logResult('post-results', `Error: ${error.message}`, 'error');
+                logResult('post-results', 'CORS TEST FAILED! ❌ This likely means CORS preflight is not configured correctly.', 'error');
+            }
+        }
+
+        // Test complete workflow (create, check status, get result)
+        async function testWorkflow() {
+            const resultElement = document.getElementById('workflow-results');
+            resultElement.innerHTML = ''; // Clear previous results
+            
+            logResult('workflow-results', 'Starting complete workflow test...', 'info');
+            
+            // Step 1: Create workflow
+            try {
+                logResult('workflow-results', '1. Creating workflow execution...', 'info');
+                const createResponse = await fetch(`${API_BASE_URL}/api/workflow/execute`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ test: true })
+                });
+                
+                if (!createResponse.ok) {
+                    throw new Error(`Failed to create workflow: ${createResponse.status}`);
+                }
+                
+                const createData = await createResponse.json();
+                workflowId = createData.id;
+                logResult('workflow-results', `Workflow created with ID: ${workflowId}`, 'success');
+                
+                // Step 2: Check status multiple times
+                logResult('workflow-results', '2. Checking workflow status...', 'info');
+                let status = 'running';
+                let attempts = 0;
+                
+                while (status === 'running' && attempts < 5) {
+                    attempts++;
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+                    
+                    const statusResponse = await fetch(`${API_BASE_URL}/api/workflow/status/${workflowId}`);
+                    if (!statusResponse.ok) {
+                        throw new Error(`Failed to check status: ${statusResponse.status}`);
+                    }
+                    
+                    const statusData = await statusResponse.json();
+                    status = statusData.status;
+                    logResult('workflow-results', `Status check #${attempts}: ${status} (${statusData.progress}%)`, 'info');
+                }
+                
+                // Step 3: Get final result
+                logResult('workflow-results', '3. Retrieving final result...', 'info');
+                const resultResponse = await fetch(`${API_BASE_URL}/api/workflow/result/${workflowId}`);
+                
+                if (!resultResponse.ok) {
+                    throw new Error(`Failed to get result: ${resultResponse.status}`);
+                }
+                
+                const resultData = await resultResponse.json();
+                logResult('workflow-results', `Final result: ${JSON.stringify(resultData)}`, 'success');
+                
+                logResult('workflow-results', 'COMPLETE WORKFLOW TEST PASSED! ✅ All stages completed successfully.', 'success');
+            } catch (error) {
+                logResult('workflow-results', `Error: ${error.message}`, 'error');
+                logResult('workflow-results', 'Test failed! Could not complete workflow.', 'error');
+            }
+        }
+
+        // Initialize the test page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check server status
+            checkServerStatus();
+            setInterval(checkServerStatus, 5000); // Check every 5 seconds
+            
+            // Set up button event listeners
+            document.getElementById('test-get').addEventListener('click', testGetRequest);
+            document.getElementById('test-post').addEventListener('click', testPostRequest);
+            document.getElementById('test-workflow').addEventListener('click', testWorkflow);
+            
+            // Initial log message
+            logResult('get-results', 'Ready to test. Click the button above to start.', 'info');
+            logResult('post-results', 'Ready to test. Click the button above to start.', 'info');
+            logResult('workflow-results', 'Ready to test. Click the button above to start.', 'info');
+        });
+    </script>
+</body>
+</html>

@@ -4,6 +4,7 @@ import zio._
 import com.agenticai.core.agent.Agent
 import com.agenticai.mesh.AgentMesh
 import com.agenticai.mesh.protocol.RemoteAgentRef
+import com.agenticai.mesh.protocol.AgentLocation
 import com.agenticai.core.capability.Capability
 import java.util.UUID
 
@@ -31,8 +32,8 @@ trait MeshWithDiscovery extends AgentMesh {
     metadata: AgentMetadata
   ): Task[RemoteAgentRef[I, O]] = {
     for {
-      // Deploy the agent using standard mesh deployment
-      ref <- deploy(agent, defaultLocation)
+      // Deploy the agent using a local location
+      ref <- deploy(agent, AgentLocation.local(8080))
       
       // Register the agent in the directory with its capabilities
       _ <- directory.registerAgent(ref, metadata)
@@ -40,6 +41,19 @@ trait MeshWithDiscovery extends AgentMesh {
       // Set the agent status to Active
       _ <- directory.updateAgentStatus(ref.id, AgentStatus.Active)
     } yield ref
+  }
+  
+  /**
+   * Deploy and register an agent with default capabilities.
+   */
+  def deployAndRegister[I, O](agent: Agent[I, O]): Task[RemoteAgentRef[I, O]] = {
+    // Create default metadata for the agent
+    val metadata = AgentMetadata(
+      capabilities = Set("agent"),
+      inputType = "Any",
+      outputType = "Any"
+    )
+    registerAgent(agent, metadata)
   }
   
   /**
@@ -53,11 +67,13 @@ trait MeshWithDiscovery extends AgentMesh {
     capabilities: Set[String],
     limit: Int = 10
   ): Task[List[AgentInfo]] = {
-    directory.discoverAgents(AgentQuery(
-      capabilities = capabilities,
-      limit = limit,
-      onlyActive = true
-    ))
+    directory.discoverAgents(
+      TypedAgentQuery(
+        capabilities = capabilities,
+        limit = limit,
+        onlyActive = true
+      )
+    )
   }
   
   /**
@@ -117,8 +133,10 @@ trait MeshWithDiscovery extends AgentMesh {
    *
    * @return Stream of directory events
    */
-  def subscribeToDirectoryEvents(): Stream[Throwable, DirectoryEvent] = {
-    directory.subscribeToEvents()
+  def subscribeToDirectoryEvents(): Stream[DirectoryEvent] = {
+    // Ensure we're using the right Stream implementation
+    val events = directory.subscribeToEvents()
+    events
   }
   
   /**
@@ -155,7 +173,7 @@ object MeshWithDiscovery {
     // Delegate all basic mesh operations to the wrapped mesh
     def deploy[I, O](
       agent: Agent[I, O], 
-      location: com.agenticai.mesh.protocol.AgentLocation
+      location: AgentLocation
     ): Task[RemoteAgentRef[I, O]] = {
       mesh.deploy(agent, location)
     }
@@ -179,36 +197,18 @@ object MeshWithDiscovery {
     }
     
     def withServerLocation(
-      serverLocation: com.agenticai.mesh.protocol.AgentLocation
+      serverLocation: AgentLocation
     ): MeshWithDiscovery = {
       val updatedMesh = mesh.withServerLocation(serverLocation)
       MeshWithDiscovery(updatedMesh, directory)
-    }
-    
-    // Use the mesh's default location for agent registration
-    def defaultLocation: com.agenticai.mesh.protocol.AgentLocation = {
-      // This is a bit of a hack, but we need to get the default location
-      // Use reflection to access the private field
-      try {
-        val field = mesh.getClass.getDeclaredField("defaultLocation")
-        field.setAccessible(true)
-        field.get(mesh).asInstanceOf[com.agenticai.mesh.protocol.AgentLocation]
-      } catch {
-        case _: Exception =>
-          // Default to localhost:8080 if we can't get the field
-          com.agenticai.mesh.protocol.AgentLocation.local(8080)
-      }
     }
   }
   
   /**
    * ZIO layer for providing a mesh with discovery.
    */
-  def live: ZLayer[AgentMesh with AgentDirectory, Nothing, MeshWithDiscovery] = {
-    ZLayer.fromFunction { services =>
-      val mesh = services.get[AgentMesh]
-      val directory = services.get[AgentDirectory]
-      MeshWithDiscovery(mesh, directory)
-    }
+  // Simple factory method that doesn't require ZLayer
+  def create(mesh: AgentMesh, directory: AgentDirectory): MeshWithDiscovery = {
+    MeshWithDiscovery(mesh, directory)
   }
 }

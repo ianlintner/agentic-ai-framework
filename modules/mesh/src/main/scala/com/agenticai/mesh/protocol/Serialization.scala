@@ -22,7 +22,7 @@ trait Serialization {
    * @param bytes Serialized bytes
    * @return Deserialized object
    */
-  def deserialize[A: ClassTag](bytes: Array[Byte]): Task[A]
+  def deserialize[A](bytes: Array[Byte])(implicit tag: ClassTag[A]): Task[A]
   
   /**
    * Serialize an agent.
@@ -38,16 +38,16 @@ trait Serialization {
    * @param bytes Serialized bytes
    * @return Deserialized agent
    */
-  def deserializeAgent[I: ClassTag, O: ClassTag](bytes: Array[Byte]): Task[Agent[I, O]]
+  def deserializeAgent[I, O](bytes: Array[Byte])(implicit tagI: ClassTag[I], tagO: ClassTag[O]): Task[Agent[I, O]]
   
   /**
-   * Get the type name for a type.
+   * Get the type name for a class.
    *
+   * @param clazz Class to get name for
    * @return Type name
    */
-  def getTypeName[A: ClassTag]: String = {
-    val tag = implicitly[ClassTag[A]]
-    tag.runtimeClass.getName
+  def getTypeName(clazz: Class[_]): String = {
+    clazz.getName
   }
 }
 
@@ -57,37 +57,20 @@ object Serialization {
    * 
    * @return A no-op serialization for testing
    */
-  def test: Serialization = new NoOpSerialization
-
-  /**
-   * No-op implementation for testing.
-   */
-  private class NoOpSerialization extends Serialization {
-    import java.util.concurrent.ConcurrentHashMap
-    import scala.collection.concurrent
+  def test: Serialization = new Serialization {
+    import java.util.UUID
     
-    // Maps for storing references instead of actually serializing
-    private val agentMap = new ConcurrentHashMap[Array[Byte], Agent[_, _]]()
-    private val valueMap = new ConcurrentHashMap[Array[Byte], Any]()
+    // Simple implementation that just returns placeholders
+    def serialize[A](value: A): Task[Array[Byte]] = 
+      ZIO.succeed(UUID.randomUUID().toString.getBytes)
     
-    def serialize[A](value: A): Task[Array[Byte]] = ZIO.succeed {
-      val bytes = UUID.randomUUID().toString.getBytes
-      valueMap.put(bytes, value)
-      bytes
-    }
+    def deserialize[A](bytes: Array[Byte])(implicit tag: ClassTag[A]): Task[A] = 
+      ZIO.attempt(null.asInstanceOf[A])
     
-    def deserialize[A: ClassTag](bytes: Array[Byte]): Task[A] = ZIO.succeed {
-      valueMap.get(bytes).asInstanceOf[A]
-    }
+    def serializeAgent[I, O](agent: Agent[I, O]): Task[Array[Byte]] = 
+      ZIO.succeed(UUID.randomUUID().toString.getBytes)
     
-    def serializeAgent[I, O](agent: Agent[I, O]): Task[Array[Byte]] = ZIO.succeed {
-      val bytes = UUID.randomUUID().toString.getBytes
-      agentMap.put(bytes, agent)
-      bytes
-    }
-    
-    def deserializeAgent[I: ClassTag, O: ClassTag](bytes: Array[Byte]): Task[Agent[I, O]] = ZIO.succeed {
-      agentMap.get(bytes).asInstanceOf[Agent[I, O]]
-    }
+    def deserializeAgent[I, O](bytes: Array[Byte])(implicit tagI: ClassTag[I], tagO: ClassTag[O]): Task[Agent[I, O]] = 
+      ZIO.attempt(null.asInstanceOf[Agent[I, O]])
   }
 }

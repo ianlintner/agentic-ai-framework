@@ -28,6 +28,7 @@ The framework is organized into the following modules:
 - **agents**: Agent implementations for various use cases
 - **http**: Web API implementation
 - **dashboard**: Web UI and visualizations
+- **workflow-demo**: Visual UI builder for agent workflow composition
 - **examples**: Example applications using the framework
 - **demo**: Standalone demos with minimal dependencies
 
@@ -67,6 +68,9 @@ sbt runClaudeExample
 
 # Test the connection to Vertex AI
 sbt testVertexConnection
+
+# Run the Workflow UI Builder Demo
+sbt runWorkflowDemo
 
 # Run the Factorio-inspired Circuit Patterns Demo
 ./modules/demo/run-circuit-demo.sh

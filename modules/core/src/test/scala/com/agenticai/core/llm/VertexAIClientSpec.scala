@@ -66,10 +66,20 @@ object VertexAIClientSpec extends ZIOSpecDefault {
         
         for {
           results <- client.streamCompletion("Hello").runCollect
-        } yield assertTrue(
-          results.size > 0 &&
-          results.mkString.contains("Hello")
-        )
+          // Pre-compute all boolean checks outside of the assertion entirely
+          hasElements = results.nonEmpty
+          // Check content without using mkString (avoiding macro expansion)
+          containsHello = {
+            var found = false
+            for (element <- results) {
+              if (element.contains("Hello")) found = true
+            }
+            found
+          }
+        } yield {
+          // Use two separate assertions to completely avoid complex macro expansion
+          assertTrue(hasElements) && assertTrue(containsHello)
+        }
       }
     ),
     

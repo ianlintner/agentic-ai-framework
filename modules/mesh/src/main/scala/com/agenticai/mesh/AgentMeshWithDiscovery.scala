@@ -4,6 +4,7 @@ import zio._
 import com.agenticai.core.agent.Agent
 import com.agenticai.mesh.protocol._
 import com.agenticai.mesh.discovery._
+import com.agenticai.mesh.discovery.Stream.WithError
 import java.util.UUID
 
 /**
@@ -103,7 +104,7 @@ trait AgentMeshWithDiscovery extends AgentMesh {
    *
    * @return Stream of directory events
    */
-  def subscribeToDirectoryEvents(): Stream[Throwable, DirectoryEvent]
+  def subscribeToDirectoryEvents(): Stream[DirectoryEvent]
   
   /**
    * Find the best agent that matches the given query.

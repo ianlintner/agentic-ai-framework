@@ -4,6 +4,7 @@ import zio._
 import com.agenticai.core.agent.Agent
 import com.agenticai.mesh.protocol._
 import com.agenticai.mesh.discovery._
+import com.agenticai.mesh.discovery.AgentQueryConverter
 import java.util.UUID
 
 /**
@@ -110,7 +111,16 @@ private[mesh] class AgentMeshWithDiscoveryImpl(
    * Delegates to the directory.
    */
   override def discoverAgents(query: AgentQuery): Task[List[AgentInfo]] = {
-    directory.discoverAgents(query)
+    // Create a TypedAgentQuery directly instead of using the converter
+    val typedQuery = TypedAgentQuery(
+      capabilities = query.capabilities,
+      inputType = query.inputType,
+      outputType = query.outputType,
+      properties = query.properties,
+      limit = query.limit,
+      onlyActive = query.onlyActive
+    )
+    directory.discoverAgents(typedQuery)
   }
   
   /**
@@ -133,7 +143,8 @@ private[mesh] class AgentMeshWithDiscoveryImpl(
    * Subscribe to directory events.
    * Delegates to the directory.
    */
-  override def subscribeToDirectoryEvents(): Stream[Throwable, DirectoryEvent] = {
+  override def subscribeToDirectoryEvents(): Stream[DirectoryEvent] = {
+    // Use our single-parameter Stream
     directory.subscribeToEvents()
   }
   

@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # Frontend Dashboard container
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agentic-dashboard
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    restart: unless-stopped
+    networks:
+      - agentic-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      - api-server
+
+  # Backend API server container
+  # Uncomment and configure when integrating with the backend
+  api-server:
+    image: openjdk:17-slim
+    container_name: agentic-api-server
+    ports:
+      - "8081:8080"
+    environment:
+      - JAVA_OPTS=-Xmx512m
+    volumes:
+      - ../../:/app
+    working_dir: /app
+    # This command assumes a compiled JAR file with embedded web server
+    # Adjust according to your actual backend setup
+    command: >
+      sh -c "
+        # Placeholder for application startup
+        # For example, to run the application with sbt:
+        # sbt 'project dashboard' run
+        # Or to run the application as an assembled JAR:
+        # java -jar /app/modules/dashboard/target/scala-2.13/dashboard.jar
+        echo 'API server placeholder - replace with actual start command'
+        # Keep container alive for development purposes 
+        tail -f /dev/null
+      "
+    restart: unless-stopped
+    networks:
+      - agentic-network
+
+networks:
+  agentic-network:
+    driver: bridge

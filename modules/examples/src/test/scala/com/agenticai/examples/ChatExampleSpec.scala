@@ -16,8 +16,10 @@ case class UserPreferences(
   notifications: Boolean,
   language: String
 )
-
 object ChatExampleSpec extends ZIOSpecDefault {
+  // Define the test layer separately to avoid macro processing issues
+  private val memoryLayer = ZLayer.succeed(new InMemorySystem())
+  
   def spec = suite("ChatExample")(
     test("should store and retrieve messages") {
       for {
@@ -103,5 +105,5 @@ object ChatExampleSpec extends ZIOSpecDefault {
         }
       } yield result
     }
-  ).provide(ZLayer.succeed(new InMemorySystem()))
+  ).provideLayer(memoryLayer)
 }

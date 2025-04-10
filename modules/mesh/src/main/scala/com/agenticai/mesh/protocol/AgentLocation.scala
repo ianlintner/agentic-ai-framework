@@ -45,7 +45,9 @@ object AgentLocation {
    */
   def fromUri(uri: String): Option[AgentLocation] = {
     try {
-      val url = new java.net.URL(uri)
+      // Use URI first, then convert to URL to avoid deprecation warning
+      val javaUri = new java.net.URI(uri)
+      val url = javaUri.toURL()
       Some(AgentLocation(url.getHost, url.getPort))
     } catch {
       case _: Exception => None
