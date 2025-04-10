@@ -3,8 +3,8 @@ package com.agenticai.core.llm
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class VertexAIConfigSpec extends AnyFlatSpec with Matchers {
-  
+class VertexAIConfigSpec extends AnyFlatSpec with Matchers:
+
   "VertexAIConfig.claudeDefault" should "have expected values" in {
     val config = VertexAIConfig.claudeDefault
     config.projectId shouldBe "your-project-id"
@@ -12,7 +12,7 @@ class VertexAIConfigSpec extends AnyFlatSpec with Matchers {
     config.temperature shouldBe 0.2
     config.maxOutputTokens shouldBe 1024
   }
-  
+
   "Custom config" should "override defaults" in {
     val custom = VertexAIConfig(
       projectId = "custom-project",
@@ -21,13 +21,13 @@ class VertexAIConfigSpec extends AnyFlatSpec with Matchers {
       temperature = 0.5,
       maxOutputTokens = 2048
     )
-    
+
     custom.projectId shouldBe "custom-project"
     custom.modelName shouldBe "custom-model"
     custom.temperature shouldBe 0.5
     custom.maxOutputTokens shouldBe 2048
   }
-  
+
   "getLocationString" should "return valid location string" in {
     val config = VertexAIConfig(
       projectId = "test-project",
@@ -37,14 +37,13 @@ class VertexAIConfigSpec extends AnyFlatSpec with Matchers {
     val locationString = config.getLocationString
     locationString shouldBe "projects/test-project/locations/us-central1"
   }
-  
+
   "validateCredentialsPath" should "return false with invalid path" in {
     val result = VertexAIConfig.validateCredentialsPath(Some("/bad/path"))
     result shouldBe false
   }
-  
+
   "validateCredentialsPath" should "return true with None" in {
     val result = VertexAIConfig.validateCredentialsPath(None)
     result shouldBe true
   }
-}
