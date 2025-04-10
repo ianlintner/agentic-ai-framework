@@ -1,0 +1,185 @@
+name: Scala Tests with Reports
+
+# This workflow can be run locally with GitHub CLI:
+# gh workflow run scala-test-reports.yml
+
+on:
+  # No automatic triggers since we want to run this locally on demand
+  workflow_dispatch:
+    inputs:
+      modules:
+        description: 'Modules to test (comma-separated, leave empty for all)'
+        required: false
+        default: ''
+        type: string
+      skip-coverage:
+        description: 'Skip coverage reports (faster)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  test-with-reports:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up JDK 11
+      uses: actions/setup-java@v3
+      with:
+        java-version: 11
+        distribution: 'temurin'
+        cache: 'sbt'
+    
+    - name: Install sbt
+      run: |
+        echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | sudo tee /etc/apt/sources.list.d/sbt.list
+        echo "deb https://repo.scala-sbt.org/scalasbt/debian /" | sudo tee /etc/apt/sources.list.d/sbt_old.list
+        curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | sudo apt-key add
+        sudo apt-get update
+        sudo apt-get install -y sbt
+    
+    - name: Cache SBT
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.sbt
+          ~/.ivy2/cache
+          ~/.coursier/cache
+          ~/.cache/coursier
+        key: ${{ runner.os }}-sbt-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-sbt-
+    
+    - name: Check code format
+      run: sbt scalafmtCheckAll
+    
+    - name: Determine test targets
+      id: test-targets
+      run: |
+        if [ -z "${{ github.event.inputs.modules }}" ]; then
+          echo "test_command=;testOnly -- -h target/test-reports" >> $GITHUB_OUTPUT
+          echo "Running tests for all modules"
+        else
+          MODULES="${{ github.event.inputs.modules }}"
+          IFS=',' read -ra MODULE_ARRAY <<< "$MODULES"
+          CMD=""
+          for module in "${MODULE_ARRAY[@]}"; do
+            trimmed=$(echo "$module" | xargs)
+            CMD="$CMD;${trimmed}/testOnly -- -h target/test-reports"
+          done
+          echo "test_command=$CMD" >> $GITHUB_OUTPUT
+          echo "Running tests for modules: $MODULES"
+        fi
+    
+    - name: Run tests with detailed reports
+      run: |
+        if [ "${{ github.event.inputs.skip-coverage }}" == "true" ]; then
+          sbt "${{ steps.test-targets.outputs.test_command }}"
+        else
+          sbt coverage "${{ steps.test-targets.outputs.test_command }}"
+        fi
+    
+    - name: Generate coverage report
+      if: ${{ github.event.inputs.skip-coverage != 'true' }}
+      run: sbt coverageReport coverageAggregate
+    
+    - name: Generate HTML test reports
+      run: |
+        # Create a summary of test results
+        echo "# Test Results Summary" > test-summary.md
+        echo "" >> test-summary.md
+        
+        # Find all test report XMLs
+        find . -name "TEST-*.xml" | while read -r file; do
+          module=$(echo "$file" | sed -E 's/\.\/(.+)\/target.+/\1/')
+          test_name=$(basename "$file" .xml | sed 's/TEST-//')
+          
+          # Extract pass/fail counts
+          total=$(grep -o 'tests="[0-9]*"' "$file" | sed 's/tests="//' | sed 's/"//')
+          failures=$(grep -o 'failures="[0-9]*"' "$file" | sed 's/failures="//' | sed 's/"//')
+          errors=$(grep -o 'errors="[0-9]*"' "$file" | sed 's/errors="//' | sed 's/"//')
+          skipped=$(grep -o 'skipped="[0-9]*"' "$file" | sed 's/skipped="//' | sed 's/"//')
+          
+          # Calculate pass count
+          pass=$((total - failures - errors - skipped))
+          
+          # Append to summary
+          echo "## Module: $module" >> test-summary.md
+          echo "- Test: $test_name" >> test-summary.md
+          echo "- Total: $total tests" >> test-summary.md
+          echo "- Passed: $pass tests" >> test-summary.md
+          if [ "$failures" -gt 0 ]; then
+            echo "- Failed: $failures tests ❌" >> test-summary.md
+          fi
+          if [ "$errors" -gt 0 ]; then
+            echo "- Errors: $errors tests ❌" >> test-summary.md
+          fi
+          if [ "$skipped" -gt 0 ]; then
+            echo "- Skipped: $skipped tests ⚠️" >> test-summary.md
+          fi
+          echo "" >> test-summary.md
+        done
+        
+        cat test-summary.md
+        
+    - name: Upload test XML reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-reports-xml
+        path: '**/target/test-reports/**/*.xml'
+    
+    - name: Upload test HTML reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-reports-html
+        path: '**/target/test-reports/**/*.html'
+    
+    - name: Upload coverage reports
+      if: ${{ github.event.inputs.skip-coverage != 'true' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-reports
+        path: |
+          **/target/scala-*/scoverage-report/**
+          **/target/scala-*/scoverage-data/**
+    
+    - name: Create Module-Specific Coverage Report
+      if: ${{ github.event.inputs.skip-coverage != 'true' }}
+      run: |
+        echo "# Coverage by Module" > coverage-summary.md
+        echo "" >> coverage-summary.md
+        
+        find . -name "scoverage.coverage" | while read -r file; do
+          module=$(echo "$file" | sed -E 's/\.\/(.+)\/target.+/\1/')
+          
+          # Extract coverage metrics
+          if [ -f "$file" ]; then
+            stmt_coverage=$(grep "statement coverage:" "$file" | awk '{print $3}')
+            branch_coverage=$(grep "branch coverage:" "$file" | awk '{print $3}')
+            
+            echo "## $module" >> coverage-summary.md
+            echo "- Statement Coverage: $stmt_coverage" >> coverage-summary.md
+            echo "- Branch Coverage: $branch_coverage" >> coverage-summary.md
+            echo "" >> coverage-summary.md
+          fi
+        done
+        
+        cat coverage-summary.md
+        
+    - name: Upload test summary
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-summary
+        path: test-summary.md
+        
+    - name: Upload coverage summary
+      if: ${{ github.event.inputs.skip-coverage != 'true' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-summary
+        path: coverage-summary.md
+
+    - name: Upload to Codecov
+      if: ${{ github.event.inputs.skip-coverage != 'true' }}
+      uses: codecov/codecov-action@v3
