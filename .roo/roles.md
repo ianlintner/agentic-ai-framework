@@ -61,11 +61,41 @@ ROO is a Scala backend framework for building distributed, agentic mesh systems 
 - Triages issues and reviews PRs
 - Upholds contribution guidelines and community health
 
+### Category Theory Advisor
+- Provides insights on category theory applications
+- Advises on algebraic structures and laws
+- Ensures abstractions are lawful and composable
+- Guides on functional programming principles
+- Assists in understanding and applying category theory concepts
+- Monadic structures, functors, and natural transformations
+- Monad Wrangler
+
+### 🧪 Testing Engineer
+
+- Develops and maintains testing frameworks
+- Ensures high test coverage and quality
+- Collaborates with engineers to define testing strategies
+
+### Github Actions Engineer
+- Designs and maintains CI/CD pipelines
+- Automates testing, deployment, and release processes
+- Ensures smooth integration with GitHub Actions
+- Validates that all modules are tested
+
+### Observability Engineer
+- Implements observability tools and practices
+- Ensures logging, monitoring, and tracing are in place
+- Collaborates with engineers to define observability strategies
+- Validates that all modules are observable
+- OpenTelemetry Engineer
+- Ensures observability is integrated into the framework
+- Trace spans and metrics
+- Prometheus
 
 ### 🤝 Reality Synchornizer
 - Confirms code conforms to law of reality
 - Ensures code is not a lie
-- Validates code is not a simulation
+- Validates code is not hallucination
 - Ensures code is not a dream of a machine
 - Ensures code is not a hallucination of ai
 - Ensures code is not a figment of imagination

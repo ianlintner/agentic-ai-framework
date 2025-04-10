@@ -2,7 +2,9 @@ package com.agenticai.workflow.engine
 
 import com.agenticai.workflow.model.*
 import com.agenticai.workflow.agent.*
+import com.agenticai.telemetry.SimpleTelemetry
 import zio.*
+import java.util.concurrent.TimeUnit
 
 /** Engine that executes workflows by coordinating agents
   */
@@ -22,12 +24,40 @@ class WorkflowEngine(
     * @return
     *   The output after processing through all workflow nodes
     */
-  def executeWorkflow(workflow: Workflow, input: String): ZIO[Any, Throwable, String] =
-    // Build execution plan from the workflow
-    val executionPlan = buildExecutionPlan(workflow)
-
-    // Process input through the execution plan
-    runExecutionPlan(executionPlan, input)
+  def executeWorkflow(workflow: Workflow, input: String): ZIO[Any, Throwable, String] = {
+    val workflowTags = Map(
+      "workflow_id" -> workflow.id,
+      "workflow_name" -> workflow.name,
+      "node_count" -> workflow.nodes.size.toString
+    )
+    
+    for {
+      // Start workflow execution telemetry
+      startTime <- Clock.currentTime(TimeUnit.MILLISECONDS)
+      _ <- SimpleTelemetry.recordStart("workflow.execute", workflowTags)
+      
+      // Build execution plan from the workflow
+      executionPlan <- ZIO.succeed(buildExecutionPlan(workflow))
+      _ <- SimpleTelemetry.recordMetric("workflow.plan.steps", executionPlan.size.toDouble, workflowTags)
+      
+      // Process input through the execution plan
+      result <- runExecutionPlan(executionPlan, input)
+        .tapError { error =>
+          SimpleTelemetry.recordError(
+            "workflow.execute",
+            error.getClass.getSimpleName,
+            error.getMessage,
+            workflowTags
+          )
+        }
+      
+      // End workflow execution telemetry
+      endTime <- Clock.currentTime(TimeUnit.MILLISECONDS)
+      duration = endTime - startTime
+      _ <- SimpleTelemetry.recordEnd("workflow.execute", duration, workflowTags)
+      _ <- SimpleTelemetry.recordMetric("workflow.execution.time", duration, workflowTags)
+    } yield result
+  }
 
   /** Build an execution plan from a workflow definition This converts the declarative workflow into
     * an executable sequence of operations
@@ -99,20 +129,60 @@ class WorkflowEngine(
 
   /** Run an execution plan on an input
     */
+  /** Run an execution plan on an input with telemetry
+    */
   private def runExecutionPlan(
       steps: List[WorkflowStep],
       input: String
-  ): ZIO[Any, Throwable, String] =
-    steps.foldLeft(ZIO.succeed(input)) { (resultZIO, step) =>
-      resultZIO.flatMap(intermediateResult =>
-        step
-          .execute(intermediateResult)
-          .catchAll(error =>
-            ZIO.logError(s"Step execution failed: ${error.getMessage}") *>
-              ZIO.succeed(s"Error processing text: ${error.getMessage}")
+  ): ZIO[Any, Throwable, String] = {
+    val planTags = Map("step_count" -> steps.size.toString)
+    
+    for {
+      // Start execution plan telemetry
+      startTime <- Clock.currentTime(TimeUnit.MILLISECONDS)
+      _ <- SimpleTelemetry.recordStart("workflow.plan.execute", planTags)
+      
+      // Execute each step
+      result <- steps.zipWithIndex.foldLeft(ZIO.succeed(input)) { case (resultZIO, (step, index)) =>
+        resultZIO.flatMap(intermediateResult => {
+          val stepTags = Map(
+            "step_index" -> index.toString,
+            "step_type" -> step.getClass.getSimpleName
           )
-      )
-    }
+          
+          for {
+            _ <- SimpleTelemetry.recordStart(s"workflow.step.execute", stepTags)
+            stepStartTime <- Clock.currentTime(TimeUnit.MILLISECONDS)
+            
+            stepResult <- step
+              .execute(intermediateResult)
+              .catchAll(error => {
+                for {
+                  _ <- ZIO.logError(s"Step execution failed: ${error.getMessage}")
+                  _ <- SimpleTelemetry.recordError(
+                    "workflow.step.execute",
+                    error.getClass.getSimpleName,
+                    error.getMessage,
+                    stepTags
+                  )
+                } yield s"Error processing text: ${error.getMessage}"
+              })
+              
+            stepEndTime <- Clock.currentTime(TimeUnit.MILLISECONDS)
+            stepDuration = stepEndTime - stepStartTime
+            _ <- SimpleTelemetry.recordEnd(s"workflow.step.execute", stepDuration, stepTags)
+            _ <- SimpleTelemetry.recordMetric("workflow.step.duration", stepDuration, stepTags)
+          } yield stepResult
+        })
+      }
+      
+      // End execution plan telemetry
+      endTime <- Clock.currentTime(TimeUnit.MILLISECONDS)
+      duration = endTime - startTime
+      _ <- SimpleTelemetry.recordEnd("workflow.plan.execute", duration, planTags)
+      _ <- SimpleTelemetry.recordMetric("workflow.plan.duration", duration, planTags)
+    } yield result
+  }
 
 object WorkflowEngine:
 
@@ -140,24 +210,31 @@ sealed trait WorkflowStep:
 /** Text transformation step
   */
 case class TextTransformStep(agent: TextTransformerAgent, transform: String) extends WorkflowStep:
-  def execute(input: String): ZIO[Any, Throwable, String] = agent.process(input)
+  def execute(input: String): ZIO[Any, Throwable, String] =
+    agent.processWithTelemetry(s"transform-${transform}", input)
 
 /** Text splitting step
   */
 case class TextSplitStep(agent: TextSplitterAgent, delimiter: String) extends WorkflowStep:
-  def execute(input: String): ZIO[Any, Throwable, String] = agent.process(input)
+  def execute(input: String): ZIO[Any, Throwable, String] =
+    agent.processWithTelemetry(s"split-${delimiter}", input)
 
 /** Summarization step
   */
 case class SummarizeStep(agent: SummarizationAgent) extends WorkflowStep:
-  def execute(input: String): ZIO[Any, Throwable, String] = agent.process(input)
+  def execute(input: String): ZIO[Any, Throwable, String] =
+    agent.processWithTelemetry("summarize", input)
 
 /** Passthrough step that doesn't modify the input
   */
 case class PassthroughStep() extends WorkflowStep:
-  def execute(input: String): ZIO[Any, Throwable, String] = ZIO.succeed(input)
+  def execute(input: String): ZIO[Any, Throwable, String] =
+    SimpleTelemetry.traceEffect("step.passthrough", Map.empty) {
+      ZIO.succeed(input)
+    }
 
 /** Build step
   */
 case class BuildStep(agent: BuildAgent) extends WorkflowStep:
-  def execute(input: String): ZIO[Any, Throwable, String] = agent.process(input)
+  def execute(input: String): ZIO[Any, Throwable, String] =
+    agent.processWithTelemetry("build", input)

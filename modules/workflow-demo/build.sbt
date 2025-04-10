@@ -5,6 +5,7 @@ organization := "com.agenticai"
 
 lazy val workflowDemo = project
   .in(file("."))
+  .dependsOn(telemetry)
   .settings(
     scalaVersion := "3.3.1",
     libraryDependencies ++= Seq(
@@ -47,3 +48,17 @@ lazy val workflowDemo = project
   )
   // Temporarily remove dependencies on core and memory to make the demo work
   // In a production setup, we'd properly configure the module dependencies
+
+// Reference to the telemetry module
+lazy val telemetry = project
+  .in(file("../telemetry"))
+  .settings(
+    scalaVersion := "3.3.1",
+    libraryDependencies ++= Seq(
+      "io.opentelemetry" % "opentelemetry-api" % "1.26.0",
+      "io.opentelemetry" % "opentelemetry-sdk" % "1.26.0",
+      "io.opentelemetry" % "opentelemetry-exporter-prometheus" % "1.26.0-alpha",
+      "io.opentelemetry" % "opentelemetry-exporter-jaeger" % "1.26.0",
+      "io.opentelemetry" % "opentelemetry-exporter-otlp" % "1.26.0"
+    )
+  )
