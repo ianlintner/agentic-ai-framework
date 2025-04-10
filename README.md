@@ -49,13 +49,41 @@ sbt compile
 ### Running Tests
 
 ```bash
+# Run all tests
 sbt test
+
+# Run tests for a specific module
+sbt "mesh/test"
 ```
 
 For integration tests:
 
 ```bash
 sbt integrationTest
+```
+
+### Generating Test Reports
+
+The project includes advanced test reporting tools:
+
+```bash
+# Generate test reports with coverage for all modules
+./run-tests-with-reports.sh --all
+
+# Generate test reports for specific modules
+./run-tests-with-reports.sh --modules=core,mesh
+
+# Skip coverage reports for faster execution
+./run-tests-with-reports.sh --modules=core --skip-coverage
+```
+
+This generates HTML test reports, coverage reports, and summary information. See [GitHub Actions Test Reports](docs/testing/GitHub_Actions_Test_Reports.md) for more details.
+
+There's also a GitHub Actions workflow that can be run locally:
+
+```bash
+# Using GitHub CLI
+gh workflow run scala-test-reports.yml
 ```
 
 ### Running Examples
