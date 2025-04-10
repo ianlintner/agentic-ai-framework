@@ -83,13 +83,13 @@ object DocumentProcessingExample extends ZIOAppDefault:
   )
 
   // Create capability registry with document processing capabilities
-  private def createCapabilityRegistry: UIO[CapabilityRegistry] =
-    // Create a simple registry for this example
+  private def createCapabilityRegistry: UIO[CapabilityRegistry] = {
     ZIO.succeed {
       val registry = CapabilityTaxonomy.createRegistry()
-
-      // Any exceptions will be caught and ignored for this example
-      try
+      
+      // We'll use traditional try-catch for error handling since we just want to ignore errors
+      try {
+        // Register all capabilities, catching any exceptions
         registry.registerCapability(
           Capability(
             id = "document-processing",
@@ -97,7 +97,7 @@ object DocumentProcessingExample extends ZIOAppDefault:
             description = "Process document content"
           )
         )
-
+        
         registry.registerCapability(
           Capability(
             id = "text-extraction",
@@ -106,7 +106,7 @@ object DocumentProcessingExample extends ZIOAppDefault:
             description = "Extract text from documents"
           )
         )
-
+        
         registry.registerCapability(
           Capability(
             id = "sentiment-analysis",
@@ -115,7 +115,7 @@ object DocumentProcessingExample extends ZIOAppDefault:
             description = "Analyze sentiment in text"
           )
         )
-
+        
         registry.registerCapability(
           Capability(
             id = "word-count",
@@ -124,7 +124,7 @@ object DocumentProcessingExample extends ZIOAppDefault:
             description = "Count words in text"
           )
         )
-
+        
         registry.registerCapability(
           Capability(
             id = "summarization",
@@ -133,10 +133,12 @@ object DocumentProcessingExample extends ZIOAppDefault:
             description = "Summarize text content"
           )
         )
-      catch case _: Throwable =>
-      // Just ignore errors for this example
-
+      } catch {
+        case _: Throwable => () // Just ignore errors for this example
+      }
+      
       registry
+    }
     }
 
   // Sample documents to process

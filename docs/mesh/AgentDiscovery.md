@@ -1,42 +1,56 @@
 # Agent Discovery in Distributed Mesh
 
+## Implementation Status
+
+This document includes implementation status markers to clearly indicate the current state of each component:
+
+- ✅ **Implemented**: Features that are fully implemented and tested
+- 🚧 **In Progress**: Features that are partially implemented
+- 🔮 **Planned**: Features planned for future development
+
 ## Overview
 
 Agent Discovery is a crucial component of the Distributed Agent Mesh that enables agents to find and collaborate with each other based on their capabilities. It provides a registry system for agents to advertise their capabilities and a discovery mechanism for finding appropriate agents to solve specific problems.
 
 ## Core Concepts
 
-### Agent Metadata
+### Agent Metadata ✅
 
 Each agent in the mesh can register metadata that describes its capabilities:
 
-- **Capabilities**: Set of strings representing the agent's abilities (e.g., "translation", "sentiment-analysis")
-- **Input/Output Types**: The types of data the agent can process and produce
-- **Properties**: Additional key-value pairs describing agent characteristics
-- **Version**: Optional version information
+- ✅ **Capabilities**: Set of strings representing the agent's abilities (e.g., "translation", "sentiment-analysis")
+- ✅ **Input/Output Types**: The types of data the agent can process and produce
+- ✅ **Properties**: Additional key-value pairs describing agent characteristics
+- 🚧 **Version**: Optional version information
 
-### Agent Status
+### Agent Status ✅
 
 Agents have a status that indicates their availability:
 
-- **Active**: Ready to process requests
-- **Unavailable**: Temporarily not accepting requests
-- **Overloaded**: Running at capacity, only critical operations should be sent
-- **Initializing**: Starting up, not yet ready
-- **ShuttingDown**: In the process of terminating
-- **Deregistered**: Permanently removed from the mesh
+- ✅ **Active**: Ready to process requests
+- ✅ **Unavailable**: Temporarily not accepting requests
+- ✅ **Overloaded**: Running at capacity, only critical operations should be sent
+- ✅ **Initializing**: Starting up, not yet ready
+- ✅ **ShuttingDown**: In the process of terminating
+- ✅ **Deregistered**: Permanently removed from the mesh
 
-### Directory Events
+### Directory Events ✅
 
 The discovery system publishes events when changes occur:
 
-- **AgentRegistered**: New agent added to the directory
-- **AgentUnregistered**: Agent removed from the directory
-- **AgentStatusChanged**: Agent's status updated
-- **AgentMetadataUpdated**: Agent's capabilities or properties changed
-- **AgentLoadChanged**: Agent's load factor changed
+- ✅ **AgentRegistered**: New agent added to the directory
+- ✅ **AgentUnregistered**: Agent removed from the directory
+- ✅ **AgentStatusChanged**: Agent's status updated
+- ✅ **AgentMetadataUpdated**: Agent's capabilities or properties changed
+- ✅ **AgentLoadChanged**: Agent's load factor changed
 
 ## Using Agent Discovery
+
+**Implementation Status**:
+- ✅ **Implemented**: In-memory agent directory
+- ✅ **Implemented**: Basic agent discovery by capabilities and properties
+- 🚧 **In Progress**: Remote agent discovery
+- 🔮 **Planned**: Smart agent selection and routing
 
 ### Registering an Agent with Capabilities
 
@@ -135,6 +149,11 @@ eventStream.foreach { event =>
 
 ## Advanced Features
 
+**Implementation Status**:
+- 🚧 **In Progress**: Agent health monitoring
+- 🔮 **Planned**: Smart agent selection
+- 🔮 **Planned**: Integration with memory systems
+
 ### Agent Health Monitoring
 
 Agents can update their status to reflect their current health:
@@ -163,7 +182,9 @@ def findBestTranslationAgent(): Task[Option[Agent[TranslationRequest, String]]] 
 }
 ```
 
-## Integration with Memory Systems
+## Integration with Memory Systems 🔮
+
+**Implementation Status**: 🔮 **Planned**
 
 The agent discovery mechanism can be integrated with the framework's memory systems to enable agents to remember successful collaborations:
 
@@ -182,7 +203,9 @@ def rememberSuccessfulCollaboration(agentInfo: AgentInfo, task: String, success:
 }
 ```
 
-## Implementing Custom Discovery Logic
+## Implementing Custom Discovery Logic 🔮
+
+**Implementation Status**: 🔮 **Planned**
 
 You can extend the discovery system with custom logic by implementing your own `AgentDirectory` or wrapping the existing one:
 
@@ -218,6 +241,8 @@ class CustomAgentDirectory(wrapped: AgentDirectory) extends AgentDirectory {
 
 ## Best Practices
 
+**Implementation Status**: 🚧 **In Progress**
+
 1. **Specific Capabilities**: Define granular capabilities that precisely describe what an agent can do
 2. **Consistent Naming**: Use a consistent naming scheme for capabilities across your application
 3. **Regular Status Updates**: Keep agent status and load information up-to-date
@@ -229,3 +254,14 @@ class CustomAgentDirectory(wrapped: AgentDirectory) extends AgentDirectory {
 ## Conclusion
 
 The Agent Discovery mechanism forms a crucial part of the distributed agent mesh, enabling dynamic composition of agent capabilities and intelligent routing of tasks to the most appropriate agents. By leveraging this system, you can build flexible, scalable, and resilient agent networks that adapt to changing requirements and resource availability.
+
+## Current Development Status
+
+The agent discovery system is currently partially implemented with:
+- ✅ In-memory agent directory with basic discovery functionality
+- ✅ Support for capabilities, metadata, and status management
+- ✅ Event publication for directory changes
+- 🚧 Remote agent discovery is under active development
+- 🔮 Advanced features like smart selection and memory integration are planned for future releases
+
+Note that the distributed mesh example is currently disabled in the codebase and will be restored in a future update as the implementation progresses.

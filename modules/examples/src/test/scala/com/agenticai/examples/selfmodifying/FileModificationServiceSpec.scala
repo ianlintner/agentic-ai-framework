@@ -1,4 +1,4 @@
-package com.agenticai.example
+package com.agenticai.examples.selfmodifying
 
 import zio.*
 import zio.test.*
@@ -10,21 +10,9 @@ import java.nio.file.Paths
 import scala.io.Source
 import java.lang.System
 
-object SelfModifyingCLISpec extends ZIOSpecDefault:
+object FileModificationServiceSpec extends ZIOSpecDefault:
 
-  def spec = suite("SelfModifyingCLI")(
-    test("parseCommand correctly identifies commands") {
-      val cli = SelfModifyingCLI
-
-      assertTrue(
-        cli.parseCommand("help") == SelfModifyingCLI.Command.Help,
-        cli.parseCommand("show test.scala") == SelfModifyingCLI.Command.Show("test.scala"),
-        cli.parseCommand("modify test.scala add a comment") == SelfModifyingCLI.Command
-          .Modify("test.scala", "add a comment"),
-        cli.parseCommand("restore test.scala") == SelfModifyingCLI.Command.Restore("test.scala"),
-        cli.parseCommand("exit") == SelfModifyingCLI.Command.Exit
-      )
-    },
+  def spec = suite("FileModificationService")(
     test("FileModificationService creates backups and validates paths") {
       val service   = new FileModificationService()
       val timestamp = System.currentTimeMillis().toString

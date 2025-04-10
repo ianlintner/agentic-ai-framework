@@ -1,198 +1,136 @@
-# Langchain4j Integration for Agentic AI Framework
+# Langchain4j Integration Module
 
-This module provides ZIO-based integration with [Langchain4j](https://github.com/langchain4j/langchain4j), a Java library that simplifies working with large language models.
+## Implementation Status
+
+This module includes implementation status markers to clearly indicate the current state of each component:
+
+- ✅ **Implemented**: Features that are fully implemented and tested
+- 🚧 **In Progress**: Features that are partially implemented
+- 🔮 **Planned**: Features planned for future development
 
 ## Overview
 
-The integration offers several key benefits:
+The Langchain4j module provides integration with the Langchain4j library, enabling seamless access to various LLM providers through a standardized interface. It wraps Langchain4j components in ZIO APIs for consistent integration with the rest of the Agentic AI Framework.
 
-1. **Mature LLM Abstraction Layer**:
-   - Built-in support for multiple LLM providers (Claude, OpenAI, Vertex AI, etc.)
-   - Streamlined handling of context, prompt formatting, and streaming
-   - Ready-to-use memory implementations
+## Current Status
 
-2. **ZIO Integration**: 
-   - All operations are wrapped in ZIO effects for functional composition
-   - Streaming support via ZStream
-   - Clean error handling through ZIO error channel
+Overall status: ✅ **Implemented**
 
-3. **Testing Advantages**:
-   - Deterministic tests without TestClock complexity
-   - Simplified mocking capabilities
-   - No timing-related issues in tests
+### Features
 
-## Requirements
+- ✅ **ZIO Chat Model Factory**: Factory for creating ZIO-wrapped Langchain4j chat models
+- ✅ **Vertex AI Model Support**: Integration with Claude and other models on Google Vertex AI
+- ✅ **Streaming Support**: Real-time token streaming for chat completions
+- ✅ **Error Handling**: ZIO-based error handling for all LLM operations
+- 🔮 **Tool Support**: Integration with Langchain4j's tool support
 
-The following dependencies are required:
+## Dependencies
 
-```scala
-// Added automatically via build.sbt
-"dev.langchain4j" % "langchain4j" % "1.0.0-beta2"
-"dev.langchain4j" % "langchain4j-anthropic" % "1.0.0-beta2"
-"dev.langchain4j" % "langchain4j-vertex-ai" % "1.0.0-beta2"
-"dev.langchain4j" % "langchain4j-vertex-ai-gemini" % "1.0.0-beta2"
-"dev.langchain4j" % "langchain4j-google-ai-gemini" % "1.0.0-beta2"
-"dev.langchain4j" % "langchain4j-open-ai" % "1.0.0-beta2"
-"dev.langchain4j" % "langchain4j-http-client" % "1.0.0-beta2"
-"dev.langchain4j" % "langchain4j-http-client-jdk" % "1.0.0-beta2"
-```
+This module depends on:
 
-## Usage
+- `core`: Required - Uses ZIO integration and core interfaces
+- External dependency on Langchain4j library
 
-### Creating a Chat Model
+## Usage Examples
 
 ```scala
-import com.agenticai.core.llm.langchain._
-import zio._
+import com.agenticai.core.llm.langchain.ZIOChatModelFactory
+import com.agenticai.core.llm.langchain.VertexAIModelSupport
+import zio.*
+import dev.langchain4j.model.chat.*
 
-// Claude model
-val claudeModel: ZIO[Any, Throwable, ZIOChatLanguageModel] = ZIOChatModelFactory.makeClaudeModel(
-  apiKey = "your-api-key",
-  modelName = "claude-3-opus-20240229",
-  temperature = Some(0.7)
-)
-
-// Vertex AI model
-val vertexModel: ZIO[Any, Throwable, ZIOChatLanguageModel] = ZIOChatModelFactory.makeVertexAIModel(
-  projectId = "your-project-id",
-  location = "us-central1",
-  modelName = "gemini-1.5-pro"
-)
-
-// OpenAI model
-val openAIModel: ZIO[Any, Throwable, ZIOChatLanguageModel] = ZIOChatModelFactory.makeOpenAIModel(
-  apiKey = "your-api-key",
-  modelName = "gpt-4o"
-)
-```
-
-### Creating a Memory System
-
-```scala
-import com.agenticai.core.llm.langchain._
-import zio._
-
-// Create a windowed memory system that stores the last 10 turns (20 messages)
-val memory: UIO[ZIOChatMemory] = ZIOChatMemory.createWindow(20)
-```
-
-### Creating an Agent
-
-```scala
-import com.agenticai.core.llm.langchain._
-import zio._
-
-// Create an agent using the factory method
-val agent: ZIO[Any, Throwable, Agent] = LangchainAgent.make(
-  ZIOChatModelFactory.ModelType.Claude,
-  ZIOChatModelFactory.ModelConfig(
-    apiKey = Some("your-api-key"),
-    modelName = Some("claude-3-sonnet-20240229")
-  ),
-  name = "claude-assistant",
-  maxHistory = 10
-)
-
-// Or create an agent manually
-for {
-  model <- ZIOChatModelFactory.makeClaudeModel("your-api-key")
-  memory <- ZIOChatMemory.createWindow(20)
-} yield LangchainAgent(model, memory, "custom-agent")
-```
-
-### Interacting with an Agent
-
-```scala
-import com.agenticai.core.llm.langchain._
-import zio._
-import zio.Console._
-
-// Synchronous interaction (returns complete response)
-val program1 = for {
-  agent <- // ... create agent
-  response <- agent.processSync("Tell me about ZIO")
-  _ <- printLine(s"Response: $response")
-} yield ()
-
-// Streaming interaction (returns chunks as they're generated)
-val program2 = for {
-  agent <- // ... create agent
-  _ <- agent.process("Tell me about ZIO")
-    .tap(chunk => printLine(chunk))
-    .runDrain
+// Create a Claude model using Vertex AI
+val program = for {
+  // Get a Claude model on Vertex AI
+  model <- ZIOChatModelFactory.claudeOnVertexAI(
+    projectId = "my-project",
+    location = "us-central1"
+  )
+  
+  // Create a user message
+  userMessage = UserMessage.from("Explain quantum computing in simple terms")
+  
+  // Get a chat response
+  response <- model.chat(userMessage)
+  
+  // Print the response
+  _ <- Console.printLine(response.content)
 } yield ()
 ```
 
-## Examples
+### Streaming Example
 
-See example applications in the `examples` package:
+```scala
+import com.agenticai.core.llm.langchain.ZIOChatModelFactory
+import zio.stream.*
 
-- `SimpleClaudeExample.scala` - Interactive CLI chat with Claude
-- `SimpleVertexAIExample.scala` - Interactive CLI chat with Vertex AI
-
-You can run these examples using the SBT tasks:
-
+// Create a streaming chat model
+val streamingProgram = for {
+  // Get a streaming model
+  model <- ZIOChatModelFactory.vertexAIStreamingChatModel(
+    projectId = "my-project",
+    location = "us-central1",
+    modelName = "claude-3-sonnet@20240229"
+  )
+  
+  // Create a user message
+  userMessage = UserMessage.from("Write a short poem about AI")
+  
+  // Get a streaming response
+  responseStream <- model.chatStream(userMessage)
+  
+  // Process the stream
+  _ <- responseStream.foreach { responsePart =>
+    ZIO.succeed(print(responsePart.content))
+  }
+} yield ()
 ```
-sbt runLangchainClaudeExample
-sbt runLangchainVertexAIExample
-```
+
+## Architecture
+
+The module is organized around:
+
+- **ZIOChatModelFactory**: Central factory for creating ZIO-wrapped Langchain4j models
+- **VertexAIModelSupport**: Specific support for Vertex AI models
+- **ZIO Wrappers**: Conversion layer between Langchain4j types and ZIO-based APIs
+
+The implementation leverages Langchain4j's provider interfaces while adding ZIO's effect management, error handling, and concurrency benefits.
+
+## Known Limitations
+
+- ✅ Limited to the models and providers supported by Langchain4j
+- 🚧 Tool support is not yet implemented
+- 🚧 Some advanced Langchain4j features may not have ZIO wrappers yet
+
+## Future Development
+
+Planned enhancements:
+
+- 🔮 Support for additional Langchain4j model providers
+- 🔮 Integration with Langchain4j's retrieval augmented generation (RAG) capabilities
+- 🔮 Tool/function calling support via Langchain4j
+- 🔮 Agent types from Langchain4j integrated with the framework's agent system
 
 ## Testing
 
-The integration includes comprehensive testing utilities:
+The module includes tests for:
 
-```scala
-import com.agenticai.core.llm.langchain.test._
-import zio._
-import zio.test._
+- ZIO wrapper functionality
+- Vertex AI model integration
+- Stream handling
 
-// Create a mock agent
-val mockAgent: ZIO[Any, Nothing, Agent] = AgentTestUtils.createMockAgent(
-  responses = Map(
-    "Hello" -> "Hi there!",
-    "What's your name?" -> "I'm Claude."
-  )
-)
-
-// Create a simple test
-val test1 = test("should respond to greeting") {
-  for {
-    agent <- mockAgent
-    response <- agent.processSync("Hello")
-  } yield assertTrue(response == "Hi there!")
-}
-
-// Or use the utility methods
-val test2 = AgentTestUtils.testAgent(
-  "should respond to greeting",
-  "Hello",
-  "Hi there!"
-)
-
-val test3 = AgentTestUtils.testConversation(
-  "full conversation flow",
-  List(
-    "Hello" -> "Hi there!",
-    "What's your name?" -> "I'm Claude."
-  )
-)
+Run tests for this module with:
+```bash
+sbt "langchain4j/test"
 ```
 
-## Advantages Over Custom Implementation
+For test coverage:
+```bash
+./scripts/run-tests-with-reports.sh --modules=langchain4j
+```
 
-This integration offers several advantages over custom LLM client implementations:
+## See Also
 
-1. **Reduced Maintenance Burden**: The Langchain4j team maintains compatibility with LLM APIs, so we don't have to
-2. **Simplified Testing**: No more TestClock issues or timing-related test failures
-3. **Broader Model Support**: Easy integration with multiple LLM providers through a consistent interface
-4. **Future-Proofing**: Langchain4j updates as LLM APIs evolve, reducing our maintenance work
-5. **Focus on Core Value**: Our team can focus on agentic behaviors rather than LLM client implementation details
-
-## Migration Strategy
-
-We recommend a phased approach:
-
-1. Use this integration for new features 
-2. Gradually migrate existing code to use the Langchain4j integration
-3. Run both implementations in parallel during the transition
-4. Remove the legacy implementation once migration is complete
+- [Langchain4j Integration Documentation](../../docs/implementation/Langchain4jIntegration.md)
+- [LLM Implementation Details](../../docs/implementation/LLMImplementationDetails.md)
+- [Official Langchain4j Documentation](https://docs.langchain4j.dev/)

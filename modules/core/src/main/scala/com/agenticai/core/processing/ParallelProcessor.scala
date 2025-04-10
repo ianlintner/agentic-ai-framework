@@ -99,7 +99,7 @@ private class DefaultParallelProcessor extends ParallelProcessor:
   ): ZIO[R with MemorySystem, E, List[A]] =
     for
       memorySystem <- ZIO.service[MemorySystem]
-      cells        <- memorySystem.getAllCells.fold(_ => List.empty, identity)
+      cells        <- memorySystem.getAllCells.mapError(e => new RuntimeException(e.getMessage)).fold(_ => List.empty, identity)
 
       // Simple heuristic - base on cell count and task memory size
       // Limit parallelism based on number of cells (assumed to correlate with memory pressure)
@@ -144,7 +144,7 @@ private class MemoryAwareParallelProcessor(memorySystem: MemorySystem)
       memoryPerTask: Long
   ): ZIO[R with MemorySystem, E, List[A]] =
     for
-      cells <- memorySystem.getAllCells.fold(_ => List.empty, identity)
+      cells <- memorySystem.getAllCells.mapError(e => new RuntimeException(e.getMessage)).fold(_ => List.empty, identity)
 
       // Calculate optimal parallelism based on current memory cells
       cellBasedParallelism = math.max(1, 20 - cells.size / 5)

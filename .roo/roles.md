@@ -7,6 +7,10 @@ ROO is a Scala backend framework for building distributed, agentic mesh systems 
 
 ## Roles
 
+### SBT Test Compliance
+- Ensures all modules pass `sbt test` before proceeding to any new feature or refactor PR.
+- Validates that all modules are up to date and passing tests.
+
 ### 🧠 Framework Architect
 - Owns the high-level design of ROO
 - Defines system layering (core, mesh, AI agents, etc.)

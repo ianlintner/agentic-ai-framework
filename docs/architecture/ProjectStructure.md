@@ -2,15 +2,26 @@
 
 This document outlines the modular structure of the Agentic AI Framework, designed to provide better composition and allow consumers to use only the parts they need.
 
+## Implementation Status
+
+This document includes implementation status markers to clearly indicate the current state of each component:
+
+- ✅ **Implemented**: Features that are fully implemented and tested
+- 🚧 **In Progress**: Features that are partially implemented
+- 🔮 **Planned**: Features planned for future development
+
 ## Module Overview
 
 The framework is divided into the following modules:
-
-1. **Core** - Essential interfaces and abstractions
-2. **Memory** - Memory system implementation
-3. **Agents** - Agent implementations
-4. **HTTP** - Web API implementation
-5. **Dashboard** - Web UI and visualizations
+1. ✅ **Core** - Essential interfaces and abstractions
+2. ✅ **Memory** - Memory system implementation (basic functionality)
+3. 🚧 **Agents** - Agent implementations
+4. 🚧 **HTTP** - Web API implementation
+5. 🚧 **Dashboard** - Web UI and visualizations
+6. ✅ **Examples** - Example applications
+7. ✅ **Workflow Demo** - Visual workflow UI builder demo
+8. ✅ **Langchain4j** - Integration with Langchain4j for LLM access
+9. 🚧 **Mesh** - Distributed agent mesh implementation
 6. **Examples** - Example applications
 
 ## Module Contents
@@ -18,6 +29,8 @@ The framework is divided into the following modules:
 ### Core Module (`modules/core`)
 
 Contains the essential interfaces, abstractions, and base types.
+
+**Implementation Status**: ✅ **Implemented**
 
 ```
 modules/core/
@@ -38,6 +51,12 @@ modules/core/
 ### Memory Module (`modules/memory`)
 
 Contains the memory system implementation, with cells and persistence.
+
+**Implementation Status**:
+- ✅ **Implemented**: Basic MemoryCell and MemorySystem interfaces
+- ✅ **Implemented**: InMemorySystem implementation
+- ✅ **Implemented**: PersistentMemorySystem implementation
+- 🚧 **In Progress**: Advanced memory monitoring and cleanup strategies
 
 ```
 modules/memory/
@@ -63,6 +82,8 @@ modules/memory/
 ### Agents Module (`modules/agents`)
 
 Contains implementations of various agent types and agent-related utilities.
+
+**Implementation Status**: 🚧 **In Progress**
 
 ```
 modules/agents/
@@ -93,6 +114,8 @@ modules/agents/
 
 Contains the HTTP API implementation.
 
+**Implementation Status**: 🚧 **In Progress**
+
 ```
 modules/http/
 ├── src/
@@ -116,6 +139,8 @@ modules/http/
 ### Dashboard Module (`modules/dashboard`)
 
 Contains the web dashboard for visualization and debugging.
+
+**Implementation Status**: 🚧 **In Progress**
 
 ```
 modules/dashboard/
@@ -146,6 +171,8 @@ modules/dashboard/
 
 Contains example applications demonstrating framework usage.
 
+**Implementation Status**: ✅ **Implemented**
+
 ```
 modules/examples/
 ├── src/
@@ -173,6 +200,27 @@ modules/examples/
 │       └── webdashboard/
 │           └── agents/
 │               └── TaskProcessorAgentSpec.scala
+### Workflow Demo Module (`modules/workflow-demo`)
+
+Contains a visual workflow UI builder demonstration.
+
+**Implementation Status**: ✅ **Implemented**
+
+### Langchain4j Module (`modules/langchain4j`)
+
+Integration with Langchain4j for accessing LLM models.
+
+**Implementation Status**: ✅ **Implemented**
+
+### Mesh Module (`modules/mesh`)
+
+Distributed agent mesh network implementation.
+
+**Implementation Status**:
+- ✅ **Implemented**: Agent discovery interfaces and in-memory implementation
+- 🚧 **In Progress**: Distributed mesh communication
+- 🔮 **Planned**: Advanced mesh features like agent migration
+
 ```
 
 ## File Migration Plan
@@ -224,12 +272,15 @@ core <---- memory <---- agents <---- http <---- dashboard
                           |
                         examples
 ```
-
-- **core**: No dependencies
-- **memory**: Depends on core
-- **agents**: Depends on core and memory
-- **http**: Depends on core, memory, and agents
-- **dashboard**: Depends on core, memory, agents, and http
+- **core**: No dependencies ✅
+- **memory**: Depends on core ✅
+- **agents**: Depends on core and memory 🚧
+- **http**: Depends on core, memory, and agents 🚧
+- **dashboard**: Depends on core, memory, agents, and http 🚧
+- **workflow-demo**: Depends on core and examples ✅
+- **langchain4j**: Depends on core ✅
+- **mesh**: Depends on core ✅
+- **examples**: Depends on multiple modules ✅
 - **examples**: Depends on all other modules
 
 ## Benefits of Modular Structure

@@ -2,14 +2,22 @@
 
 This document outlines the key features of the Agentic AI Framework's memory system, including automatic cleanup strategies and memory usage monitoring.
 
-## Automatic Cleanup Strategies
+## Implementation Status
 
-The memory system now supports automatic cleanup of memory cells based on configurable strategies:
+This document includes implementation status markers to clearly indicate the current state of each component:
 
-- **Time-based Cleanup**: Remove cells that haven't been accessed or modified for a certain period
-- **Size-based Cleanup**: Remove cells that exceed a certain size threshold
-- **Tag-based Cleanup**: Remove cells with specific tags
-- **Combinatorial Strategies**: Combine multiple strategies using AND/OR logic
+- ✅ **Implemented**: Features that are fully implemented and tested
+- 🚧 **In Progress**: Features that are partially implemented
+- 🔮 **Planned**: Features planned for future development
+
+## Automatic Cleanup Strategies 🔮
+
+The memory system supports automatic cleanup of memory cells based on configurable strategies:
+
+- 🔮 **Time-based Cleanup**: Remove cells that haven't been accessed or modified for a certain period
+- 🔮 **Size-based Cleanup**: Remove cells that exceed a certain size threshold
+- 🔮 **Tag-based Cleanup**: Remove cells with specific tags
+- 🔮 **Combinatorial Strategies**: Combine multiple strategies using AND/OR logic
 
 ### Example Usage
 
@@ -34,10 +42,11 @@ memorySystem.runCleanup() // Run all registered strategies
 memorySystem.runCleanup(tagStrategy) // Run a specific strategy
 ```
 
-### Factory Methods
+### Factory Methods 🔮
 
 The memory system provides convenient factory methods for common cleanup configurations:
 
+**Implementation Status**: 🔮 **Planned**
 ```scala
 // Create a time-based cleanup memory system
 val timeBasedSystem = MemorySystem.makeWithTimeBasedCleanup(
@@ -54,14 +63,14 @@ val sizeBasedSystem = MemorySystem.makeWithSizeBasedCleanup(
 )
 ```
 
-## Memory Usage Monitoring
+## Memory Usage Monitoring 🚧
 
-The framework now includes a comprehensive memory monitoring system that tracks memory usage metrics over time:
+The framework includes a comprehensive memory monitoring system that tracks memory usage metrics over time:
 
-- **Real-time Metrics**: Get current memory usage statistics
-- **Historical Data**: Track memory metrics over time
-- **Thresholds and Alerts**: Set thresholds for memory size and cell count
-- **Statistical Analysis**: Calculate trends and aggregated statistics
+- 🚧 **Real-time Metrics**: Get current memory usage statistics
+- 🚧 **Historical Data**: Track memory metrics over time
+- 🔮 **Thresholds and Alerts**: Set thresholds for memory size and cell count
+- 🔮 **Statistical Analysis**: Calculate trends and aggregated statistics
 
 ### Example Usage
 
@@ -91,32 +100,46 @@ val historicalMetrics = monitorService.getHistoricalMetrics(from, to)
 val statistics = monitorService.getStatistics
 ```
 
-## Integration with ZIO
+## Integration with ZIO ✅
 
 Both the memory system and monitor service are fully integrated with ZIO for:
 
-- **Asynchronous Operations**: All operations are non-blocking
-- **Resource Management**: Clean handling of resources
-- **Error Handling**: Comprehensive error types and recovery mechanisms
-- **Concurrency**: Thread-safe operations for concurrent access
-- **Testing**: TestClock support for time-based testing
+- ✅ **Asynchronous Operations**: All operations are non-blocking
+- ✅ **Resource Management**: Clean handling of resources
+- ✅ **Error Handling**: Comprehensive error types and recovery mechanisms
+- ✅ **Concurrency**: Thread-safe operations for concurrent access
+- ✅ **Testing**: TestClock support for time-based testing
 
-## Memory System Types
+## Memory System Types ✅
 
 The framework provides two main types of memory systems:
 
-1. **InMemorySystem**: For ephemeral, in-memory storage
-2. **PersistentMemorySystem**: For durable, persistent storage
+1. ✅ **InMemorySystem**: For ephemeral, in-memory storage
+2. ✅ **PersistentMemorySystem**: For durable, persistent storage
 
 Both types support the same interfaces for cleanup and monitoring.
 
-## Complete Example
+## Complete Example 🚧
 
 See `modules/examples/src/main/scala/com/agenticai/examples/memory/MemoryManagementExample.scala` for a complete example demonstrating these features.
 
-## Testing
+## Testing 🚧
 
 Comprehensive test suites are available in:
 
-- `modules/core/src/test/scala/com/agenticai/core/memory/MemoryMonitorServiceSpec.scala`
-- `modules/core/src/test/scala/com/agenticai/core/memory/CleanupStrategySpec.scala`
+- 🚧 `modules/core/src/test/scala/com/agenticai/core/memory/MemoryMonitorServiceSpec.scala`
+- 🔮 `modules/core/src/test/scala/com/agenticai/core/memory/CleanupStrategySpec.scala`
+
+## Current Implementation Status
+
+The memory system implementation currently includes:
+
+- ✅ **Implemented**: Basic MemoryCell and MemorySystem interfaces
+- ✅ **Implemented**: InMemorySystem implementation with core functionality
+- ✅ **Implemented**: PersistentMemorySystem implementation with basic persistence
+- ✅ **Implemented**: ZIO integration for concurrency and resource management
+- 🚧 **In Progress**: Memory monitoring capabilities for usage tracking
+- 🔮 **Planned**: Automatic cleanup strategies including time-based, size-based, and tag-based approaches
+- 🔮 **Planned**: Advanced monitoring with thresholds, alerts, and statistical analysis
+
+The current implementation provides a solid foundation for agent memory management with the core functionality in place, while more advanced features like automatic cleanup and comprehensive monitoring are planned for future development.
