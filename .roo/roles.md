@@ -114,6 +114,10 @@ ROO is a Scala backend framework for building distributed, agentic mesh systems 
 - Do **not** submit PRs with broken modules, even if unrelated.
 - Do **not** use `Future`, `IO`, or any effect system **other than ZIO**.
 
+
+### Always
+- Run `sbt test` before moving to any new feature.
+- Run `sbt compile` regularly
 ---
 
 ## Guidelines
