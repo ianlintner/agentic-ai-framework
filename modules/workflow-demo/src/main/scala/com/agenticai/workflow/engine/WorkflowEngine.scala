@@ -10,7 +10,8 @@ class WorkflowEngine(
     textTransformer: TextTransformerAgent,
     textSplitter: TextSplitterAgent,
     summarizer: SummarizationAgent,
-    buildAgent: BuildAgent
+    buildAgent: BuildAgent,
+    sentimentAnalyzer: SentimentAnalysisAgent
 ):
 
   /** Execute a workflow with the specified input
@@ -81,10 +82,12 @@ class WorkflowEngine(
     node.nodeType match
       case "text-transformer" =>
         val transform = node.configuration.getOrElse("transform", "capitalize")
+        textTransformer.setTransform(transform)
         TextTransformStep(textTransformer, transform)
 
       case "text-splitter" =>
         val delimiter = node.configuration.getOrElse("delimiter", "\\n")
+        textSplitter.setDelimiter(delimiter)
         TextSplitStep(textSplitter, delimiter)
 
       case "summarizer" =>
@@ -92,6 +95,11 @@ class WorkflowEngine(
 
       case "build" =>
         BuildStep(buildAgent)
+
+      case "sentiment-analysis" =>
+        val mode = node.configuration.getOrElse("mode", "basic")
+        sentimentAnalyzer.setMode(mode)
+        SentimentAnalysisStep(sentimentAnalyzer, mode)
 
       case _ =>
         // Default to passthrough for unknown node types
@@ -119,7 +127,7 @@ object WorkflowEngine:
   /** Create a layer that provides a WorkflowEngine
     */
   val live: ZLayer[
-    TextTransformerAgent & TextSplitterAgent & SummarizationAgent & BuildAgent,
+    TextTransformerAgent & TextSplitterAgent & SummarizationAgent & BuildAgent & SentimentAnalysisAgent,
     Nothing,
     WorkflowEngine
   ] =
@@ -128,8 +136,9 @@ object WorkflowEngine:
           transformer: TextTransformerAgent,
           splitter: TextSplitterAgent,
           summarizer: SummarizationAgent,
-          buildAgent: BuildAgent
-      ) => new WorkflowEngine(transformer, splitter, summarizer, buildAgent)
+          buildAgent: BuildAgent,
+          sentimentAnalyzer: SentimentAnalysisAgent
+      ) => new WorkflowEngine(transformer, splitter, summarizer, buildAgent, sentimentAnalyzer)
     )
 
 /** A step in a workflow execution plan
@@ -160,4 +169,9 @@ case class PassthroughStep() extends WorkflowStep:
 /** Build step
   */
 case class BuildStep(agent: BuildAgent) extends WorkflowStep:
+  def execute(input: String): ZIO[Any, Throwable, String] = agent.process(input)
+
+/** Sentiment analysis step
+  */
+case class SentimentAnalysisStep(agent: SentimentAnalysisAgent, mode: String) extends WorkflowStep:
   def execute(input: String): ZIO[Any, Throwable, String] = agent.process(input)

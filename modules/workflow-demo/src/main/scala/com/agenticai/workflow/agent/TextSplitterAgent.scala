@@ -5,6 +5,15 @@ import zio.*
 /** Agent that splits text based on a delimiter
   */
 class TextSplitterAgent extends Agent[String, String]:
+  private var delimiterConfig: String = "\\n" // Default to newline
+
+  /** Set the delimiter configuration
+    *
+    * @param delimiter
+    *   The delimiter to use for splitting text
+    */
+  def setDelimiter(delimiter: String): Unit =
+    delimiterConfig = delimiter
 
   /** Process the input text by splitting it based on the specified delimiter
     *
@@ -15,18 +24,11 @@ class TextSplitterAgent extends Agent[String, String]:
     */
   def process(input: String): ZIO[Any, Throwable, String] =
     ZIO.succeed {
-      val delimiter = getDelimiter()
-
-      val splitText = input.split(delimiter, -1)
+      val splitText = input.split(delimiterConfig, -1)
 
       // For presentation, join with HTML line breaks
       splitText.mkString("<br>")
     }
-
-  /** Get the current delimiter configuration In a real implementation, this would be externally
-    * configurable
-    */
-  private def getDelimiter(): String = "\\n" // Default to newline
 
 object TextSplitterAgent:
   /** Create a new text splitter agent

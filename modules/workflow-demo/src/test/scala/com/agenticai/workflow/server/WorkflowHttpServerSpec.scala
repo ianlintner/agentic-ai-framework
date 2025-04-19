@@ -43,6 +43,13 @@ object WorkflowHttpServerSpec extends ZIOSpecDefault:
     override def process(input: String): ZIO[Any, Throwable, String] =
       ZIO.succeed(s"Built: $input")
 
+  /** Mock implementation of SentimentAnalysisAgent for testing
+    */
+  private class MockSentimentAnalysisAgent extends SentimentAnalysisAgent:
+
+    override def process(input: String): ZIO[Any, Throwable, String] =
+      ZIO.succeed(s"Sentiment: $input")
+
   /** Create a sample workflow for testing
     */
   private val sampleWorkflow = Workflow(
@@ -81,13 +88,15 @@ object WorkflowHttpServerSpec extends ZIOSpecDefault:
     val mockSplitter    = new MockTextSplitterAgent
     val mockSummarizer  = new MockSummarizationAgent
     val mockBuilder     = new MockBuildAgent
+    val mockSentimentAnalyzer = new MockSentimentAnalysisAgent
 
     // Create workflow engine directly
     val workflowEngine = new WorkflowEngine(
       mockTransformer,
       mockSplitter,
       mockSummarizer,
-      mockBuilder
+      mockBuilder,
+      mockSentimentAnalyzer
     )
 
     // Create the complete layer using ZLayer.succeed for each component
@@ -95,6 +104,7 @@ object WorkflowHttpServerSpec extends ZIOSpecDefault:
       ZLayer.succeed(mockSplitter) ++
       ZLayer.succeed(mockSummarizer) ++
       ZLayer.succeed(mockBuilder) ++
+      ZLayer.succeed(mockSentimentAnalyzer) ++
       ZLayer.succeed(workflowEngine)
 
   /** Simple helper class for testing workflow execution status

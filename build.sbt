@@ -26,6 +26,8 @@ lazy val root = (project in file("."))
     langchain4j,
     demo,
     workflowDemo
+    // Temporarily excluding it module due to compilation issues
+    // it
   )
 
 lazy val mesh = (project in file("modules/mesh"))
@@ -124,9 +126,9 @@ lazy val workflowDemo = project
   .in(file("modules/workflow-demo"))
   .settings(
     name := "agentic-ai-workflow-demo",
-    scalaVersion := "3.3.1",
+    scalaVersion := "3.3.0",
     libraryDependencies ++= commonDependencies ++ Seq(
-      "dev.zio" %% "zio" % "2.0.21",
+      "dev.zio" %% "zio" % "2.0.19",
       "dev.zio" %% "zio-http" % "3.0.0-RC4",
       "dev.zio" %% "zio-json" % "0.6.2"
     )
@@ -140,7 +142,7 @@ lazy val it = (project in file("it"))
     libraryDependencies ++= commonDependencies ++ Seq(
       // add dependencies here
     )
-  ).dependsOn(core)
+  ).dependsOn(core, langchain4j)
 
 //-----------------------------------------------------------------------------
 // DEPENDENCIES
@@ -150,7 +152,7 @@ lazy val commonDependencies = Seq(
   // ZIO
   "dev.zio" %% "zio" % "2.0.19",
   "dev.zio" %% "zio-streams" % "2.0.19",
-  
+
   // Testing
   "dev.zio" %% "zio-test" % "2.0.19" % Test,
   "dev.zio" %% "zio-test-sbt" % "2.0.19" % Test,

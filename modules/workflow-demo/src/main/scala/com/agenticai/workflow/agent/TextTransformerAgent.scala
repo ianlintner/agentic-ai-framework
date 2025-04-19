@@ -5,6 +5,15 @@ import zio.*
 /** Agent that transforms text based on configuration
   */
 class TextTransformerAgent extends Agent[String, String]:
+  private var transformConfig: String = "capitalize" // Default value
+
+  /** Set the transform configuration
+    *
+    * @param transform
+    *   The transformation to apply (uppercase, lowercase, capitalize, reverse)
+    */
+  def setTransform(transform: String): Unit =
+    transformConfig = transform
 
   /** Process the input text by applying the specified transformation
     *
@@ -15,20 +24,13 @@ class TextTransformerAgent extends Agent[String, String]:
     */
   def process(input: String): ZIO[Any, Throwable, String] =
     ZIO.succeed {
-      // Default to capitalize if no transform specified
-      val transform = getTransform()
-
-      transform match
+      transformConfig match
         case "uppercase"  => input.toUpperCase
         case "lowercase"  => input.toLowerCase
         case "capitalize" => input.split("\\s+").map(_.capitalize).mkString(" ")
+        case "reverse"    => input.reverse
         case _            => input // No transformation
     }
-
-  /** Get the current transform configuration In a real implementation, this would be externally
-    * configurable
-    */
-  private def getTransform(): String = "capitalize"
 
 object TextTransformerAgent:
   /** Create a new text transformer agent

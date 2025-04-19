@@ -4,29 +4,31 @@
 
 The Workflow Demo showcases the Agentic AI Framework's ability to connect specialized agents in a workflow to perform complex tasks. This demo illustrates how agents can be orchestrated to process text, summarize content, and execute build operations.
 
-## 🚨 Important Notice: ZIO HTTP Compatibility Issue
+## 🚨 Important Notice: ZIO HTTP Compatibility
 
-There is currently a compatibility issue with ZIO HTTP 3.0.0-RC2. The server code may not compile due to API changes. As a workaround, you can access the UI directly without the backend server.
+This demo uses ZIO HTTP 3.0.0-RC4, which should resolve previous compatibility issues with RC2. If you encounter any issues with the server, you can still access the UI directly without the backend server as a workaround.
 
 ## Quick Start
 
 ### Option 1: Direct File Access (Recommended)
 
-1. Open the local test HTML file directly in your browser:
-   ```
-   file:///Users/E74823/projects/agentic-ai-framework/modules/workflow-demo/src/main/resources/public/local-test.html
-   ```
-
-2. This version uses mock data to simulate workflow execution without requiring the backend server.
-
-### Option 2: Run the Server (May Not Work)
-
-1. Run the workflow demo server:
+1. Run the workflow demo server first to see the correct file path:
    ```
    ./modules/workflow-demo/run-workflow-demo.sh
    ```
 
-2. Access the UI at: `http://localhost:8083/`
+2. Open the local test HTML file directly in your browser using the path shown in the server startup message.
+
+3. This version uses mock data to simulate workflow execution without requiring the backend server.
+
+### Option 2: Access Through Server Web Interface (May Not Work)
+
+1. Run the workflow demo server (if not already running):
+   ```
+   ./modules/workflow-demo/run-workflow-demo.sh
+   ```
+
+2. Instead of opening the HTML file directly, access the UI through the server at: `http://localhost:8083/`
 
 ## Documentation
 
@@ -67,7 +69,7 @@ If you encounter the error "Error: Failed to fetch" when running a workflow, it 
 
 1. The workflow REST API server is not running
 2. There's a CORS issue preventing the frontend from connecting to the backend
-3. The frontend is using incorrect API endpoints
-4. The ZIO HTTP server has compatibility issues (current scenario)
+3. The frontend is using incorrect API endpoints or port (make sure it's using port 8083)
+4. The ZIO HTTP server has compatibility issues (should be resolved with RC4, but might still occur)
 
 Refer to the [Troubleshooting Guide](docs/WorkflowDemo_TroubleshootingGuide.md) for detailed solutions.

@@ -14,8 +14,8 @@ object WorkflowServer extends ZIOAppDefault:
   // Create a default workflow
   private val sampleWorkflow = Workflow(
     id = UUID.randomUUID().toString,
-    name = "Text Processing and Build Demo",
-    description = "A demo workflow that transforms, summarizes text, and performs build operations",
+    name = "Text Processing, Sentiment Analysis, and Build Demo",
+    description = "A demo workflow that transforms, summarizes text, analyzes sentiment, and performs build operations",
     nodes = List(
       WorkflowNode(
         id = "node-1",
@@ -33,6 +33,13 @@ object WorkflowServer extends ZIOAppDefault:
       ),
       WorkflowNode(
         id = "node-3",
+        nodeType = "sentiment-analysis",
+        label = "Analyze Sentiment",
+        configuration = Map("mode" -> "detailed"),
+        position = NodePosition(600, 100)
+      ),
+      WorkflowNode(
+        id = "node-4",
         nodeType = "build",
         label = "Build Project",
         configuration = Map("target" -> "release"),
@@ -49,6 +56,11 @@ object WorkflowServer extends ZIOAppDefault:
         id = "conn-2",
         sourceNodeId = "node-2",
         targetNodeId = "node-3"
+      ),
+      NodeConnection(
+        id = "conn-3",
+        sourceNodeId = "node-3",
+        targetNodeId = "node-4"
       )
     )
   )
@@ -99,12 +111,13 @@ object WorkflowServer extends ZIOAppDefault:
       _ <- Console.printLine("")
 
       // Create the workflow engine and agents
-      textTransformer <- ZIO.succeed(TextTransformerAgent.make())
-      textSplitter    <- ZIO.succeed(TextSplitterAgent.make())
-      summarizer      <- ZIO.succeed(SummarizationAgent.make())
-      buildAgent      <- ZIO.succeed(BuildAgent.make())
+      textTransformer   <- ZIO.succeed(TextTransformerAgent.make())
+      textSplitter      <- ZIO.succeed(TextSplitterAgent.make())
+      summarizer        <- ZIO.succeed(SummarizationAgent.make())
+      buildAgent        <- ZIO.succeed(BuildAgent.make())
+      sentimentAnalyzer <- ZIO.succeed(SentimentAnalysisAgent.make())
       engine <- ZIO.succeed(
-        new WorkflowEngine(textTransformer, textSplitter, summarizer, buildAgent)
+        new WorkflowEngine(textTransformer, textSplitter, summarizer, buildAgent, sentimentAnalyzer)
       )
 
       // Execute the first node (capitalize)
@@ -124,11 +137,18 @@ object WorkflowServer extends ZIOAppDefault:
       _                <- Console.printLine(secondNodeResult)
       _                <- Console.printLine("")
 
-      // Execute the build node
-      _               <- Console.printLine("Step 3: Executing 'Build Project' node")
-      thirdNodeResult <- buildAgent.process(secondNodeResult)
-      _               <- Console.printLine("Final result (build):")
+      // Execute the sentiment analysis node
+      _               <- Console.printLine("Step 3: Executing 'Analyze Sentiment' node")
+      thirdNodeResult <- sentimentAnalyzer.process(secondNodeResult)
+      _               <- Console.printLine("Result after sentiment analysis:")
       _               <- Console.printLine(thirdNodeResult)
+      _               <- Console.printLine("")
+
+      // Execute the build node
+      _               <- Console.printLine("Step 4: Executing 'Build Project' node")
+      fourthNodeResult <- buildAgent.process(thirdNodeResult)
+      _               <- Console.printLine("Final result (build):")
+      _               <- Console.printLine(fourthNodeResult)
       _               <- Console.printLine("")
 
       // Execute the entire workflow
