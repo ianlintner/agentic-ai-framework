@@ -116,8 +116,7 @@ class WorkflowEngine(
         step
           .execute(intermediateResult)
           .catchAll(error =>
-            ZIO.logError(s"Step execution failed: ${error.getMessage}") *>
-              ZIO.succeed(s"Error processing text: ${error.getMessage}")
+            ZIO.logError(s"Step execution failed: ${error.getMessage}").as(s"Error processing text: ${error.getMessage}")
           )
       )
     }

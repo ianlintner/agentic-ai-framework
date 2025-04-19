@@ -92,16 +92,18 @@ object WorkflowServer extends ZIOAppDefault:
       _ <- Console.printLine(s"Name: ${sampleWorkflow.name}")
       _ <- Console.printLine(s"Description: ${sampleWorkflow.description}")
       _ <- Console.printLine("Nodes:")
-      _ <- ZIO.foreach(sampleWorkflow.nodes) { node =>
-        Console.printLine(s"  - ${node.label} (${node.nodeType})")
+      _ <- ZIO.foreachDiscard(sampleWorkflow.nodes) {
+        node =>
+          Console.printLine(s"  - ${node.label} (${node.nodeType})")
       }
       _ <- Console.printLine("Connections:")
-      _ <- ZIO.foreach(sampleWorkflow.connections) { conn =>
-        val sourceNode =
-          sampleWorkflow.nodes.find(_.id == conn.sourceNodeId).map(_.label).getOrElse("Unknown")
-        val targetNode =
-          sampleWorkflow.nodes.find(_.id == conn.targetNodeId).map(_.label).getOrElse("Unknown")
-        Console.printLine(s"  - $sourceNode → $targetNode")
+      _ <- ZIO.foreachDiscard(sampleWorkflow.connections) {
+        conn =>
+          val sourceNode =
+            sampleWorkflow.nodes.find(_.id == conn.sourceNodeId).map(_.label).getOrElse("Unknown")
+          val targetNode =
+            sampleWorkflow.nodes.find(_.id == conn.targetNodeId).map(_.label).getOrElse("Unknown")
+          Console.printLine(s"  - $sourceNode → $targetNode")
       }
       _ <- Console.printLine("")
 
