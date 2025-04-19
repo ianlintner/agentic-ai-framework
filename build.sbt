@@ -24,9 +24,7 @@ lazy val root = (project in file("."))
     dashboard,
     http,
     langchain4j,
-    demo,
     workflowDemo
-    // Temporarily excluding it module due to compilation issues
     // it
   )
 
@@ -113,14 +111,6 @@ lazy val langchain4j = (project in file("modules/langchain4j"))
     )
   ).dependsOn(core)
 
-lazy val demo = (project in file("modules/demo"))
-  .settings(name := "agentic-ai-demo")
-  .settings(commonSettings)
-  .settings(
-    libraryDependencies ++= commonDependencies ++ Seq(
-      "dev.zio" %% "zio-http" % "3.0.0-RC2"
-    )
-  ).dependsOn(core, memory, langchain4j)
 
 lazy val workflowDemo = project
   .in(file("modules/workflow-demo"))
@@ -135,15 +125,15 @@ lazy val workflowDemo = project
   )
   .dependsOn(core)
 
-// Temporarily excluding it module due to compilation issues
-// lazy val it = (project in file("it"))
-//   .settings(name := "agentic-ai-it")
-//   .settings(commonSettings)
-//   .settings(
-//     libraryDependencies ++= commonDependencies ++ Seq(
-//       // add dependencies here
-//     )
-//   ).dependsOn(core, langchain4j)
+
+ lazy val it = (project in file("it"))
+   .settings(name := "agentic-ai-it")
+   .settings(commonSettings)
+   .settings(
+     libraryDependencies ++= commonDependencies ++ Seq(
+       // add dependencies here
+     )
+   ).dependsOn(core, langchain4j)
 
 //-----------------------------------------------------------------------------
 // DEPENDENCIES
