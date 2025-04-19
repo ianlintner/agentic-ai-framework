@@ -120,15 +120,18 @@ lazy val demo = (project in file("modules/demo"))
     )
   ).dependsOn(core, memory, langchain4j)
 
-lazy val workflowDemo = (project in file("modules/workflow-demo"))
-  .settings(name := "agentic-ai-workflow-demo")
-  .settings(commonSettings)
+lazy val workflowDemo = project
+  .in(file("modules/workflow-demo"))
   .settings(
+    name := "agentic-ai-workflow-demo",
+    scalaVersion := "3.3.1",
     libraryDependencies ++= commonDependencies ++ Seq(
-      "dev.zio" %% "zio-http" % "3.0.0-RC2",
+      "dev.zio" %% "zio" % "2.0.21",
+      "dev.zio" %% "zio-http" % "3.0.0-RC4",
       "dev.zio" %% "zio-json" % "0.6.2"
     )
-  ).dependsOn(core, memory)
+  )
+  .dependsOn(core)
 
 lazy val it = (project in file("it"))
   .settings(name := "agentic-ai-it")
