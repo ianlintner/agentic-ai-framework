@@ -19,7 +19,7 @@ Application tests are found in various locations depending on their focus:
 
 1. `src/test/scala/com/agenticai/example/` - Core application tests
 2. `modules/examples/src/test/` - Example application tests
-3. `modules/demo/src/test/` - Demo application tests
+3. `modules/core/src/test/` - Core module tests including circuit pattern demos
 
 ## Self-Modifying CLI Tests
 
@@ -32,7 +32,7 @@ Tests that the CLI correctly parses user commands:
 ```scala
 test("parseCommand correctly identifies commands") {
   val cli = SelfModifyingCLI
-  
+
   assertTrue(
     cli.parseCommand("help") == SelfModifyingCLI.Command.Help,
     cli.parseCommand("show test.scala") == SelfModifyingCLI.Command.Show("test.scala"),
@@ -54,7 +54,7 @@ test("FileModificationService creates backups and validates paths") {
   val testDir = new File(System.getProperty("java.io.tmpdir"), s"test_dir_backup_${timestamp}")
   val testFile = new File(testDir, "test_backup.txt")
   val testContent = "test content for backups test"
-  
+
   ZIO.scoped {
     for {
       // Setup in a scope to ensure cleanup happens
@@ -70,13 +70,13 @@ test("FileModificationService creates backups and validates paths") {
         testDir.listFiles().foreach(_.delete())
         testDir.delete()
       }.orDie)
-      
+
       // Test backup creation through writeFile
       _ <- service.writeFile(testFile, "modified content for backup test")
       backupFiles <- ZIO.attemptBlocking {
         testDir.listFiles().filter(_.getName.matches(s"${testFile.getName}\\.\\d{8}_\\d{6}\\.bak"))
       }
-      
+
       // Test restore
       _ <- service.restoreFromBackup(backupFiles(0))
       restoredContent <- service.readFile(testFile)
@@ -95,7 +95,7 @@ test("should modify its own source code") {
   val timestamp = java.util.UUID.randomUUID().toString
   val testDir = new File(System.getProperty("java.io.tmpdir"), s"test_dir_$timestamp")
   val testFile = new File(testDir, "test.txt")
-  
+
   ZIO.scoped {
     // Test setup, modify, and restore operations
     for {
@@ -112,15 +112,15 @@ test("should modify its own source code") {
         dir.listFiles().foreach(_.delete())
         dir.delete()
       }.orDie)
-      
+
       // Modify file
       _ <- service.writeFile(testFile, "modified content for cli test")
-      
+
       // Find backup files
       backupFiles <- ZIO.attemptBlocking {
         testDir.listFiles().filter(_.getName.matches(s"${testFile.getName}\\.\\d{8}_\\d{6}\\.bak"))
       }
-      
+
       // Restore from backup
       _ <- service.restoreFromBackup(backupFiles(0))
       restoredContent <- service.readFile(testFile)
@@ -147,7 +147,7 @@ ZIO.scoped {
       // Release resource (guaranteed cleanup)
       _ => ZIO.attemptBlocking { /* cleanup */ }.orDie
     )
-    
+
     // Use the resource safely
     result <- testOperation(resource)
   } yield assertTrue(result == expected)
@@ -162,7 +162,7 @@ Tests verify proper error handling in applications:
 test("should handle file not found errors") {
   val service = new FileModificationService()
   val nonExistentFile = new File("/path/to/nonexistent/file.txt")
-  
+
   for {
     result <- service.readFile(nonExistentFile).exit
   } yield assertTrue(result.isFailure)
@@ -177,7 +177,7 @@ Tests ensure file operations are safe and don't leak resources:
 test("should clean up temporary files") {
   val service = new FileModificationService()
   val tempFile = File.createTempFile("test", ".txt")
-  
+
   for {
     _ <- service.writeFile(tempFile, "test content")
     _ <- service.deleteFile(tempFile)
@@ -196,11 +196,11 @@ test("dashboard should render agent states") {
     dashboard <- WebDashboard.make
     agent1 <- Agent.make("agent1")
     agent2 <- Agent.make("agent2")
-    
+
     // Register agents with the dashboard
     _ <- dashboard.registerAgent(agent1)
     _ <- dashboard.registerAgent(agent2)
-    
+
     // Get rendered HTML
     html <- dashboard.renderAgentStates
   } yield assertTrue(
@@ -282,14 +282,14 @@ test("end-to-end agent workflow") {
   for {
     memory <- MemorySystem.make
     llm <- VertexAIClient.make(VertexAIConfig.claudeDefault)
-    
+
     // Create agents with memory and LLM
     agentA <- Agent.make("Agent A", memory, llm)
     agentB <- Agent.make("Agent B", memory, llm)
-    
+
     // Set up communication
     _ <- agentA.connectTo(agentB)
-    
+
     // Execute workflow
     _ <- agentA.sendInstruction("Collect data and send to Agent B")
     response <- agentB.awaitMessage.timeout(5.seconds)
@@ -309,7 +309,7 @@ test("external API integration") {
           .matching(path("/api/data"))
           .respond()
           .withBody("""{"status": "success", "data": [1, 2, 3]}""")
-    
+
     for {
       client <- ApiClient.make(server.baseUrl)
       response <- client.fetchData()

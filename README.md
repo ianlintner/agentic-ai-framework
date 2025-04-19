@@ -29,10 +29,9 @@ The framework is organized into the following modules:
 - 🚧 **dashboard**: Web UI and visualizations
 - ✅ **workflow-demo**: Visual UI builder for agent workflow composition
 - ✅ **examples**: Example applications using the framework
-- ✅ **demo**: Standalone demos with minimal dependencies
 - ✅ **langchain4j**: Langchain4j integration for LLM access
 - 🚧 **mesh**: Distributed mesh network for agent communication
-- **demo**: Standalone demos with minimal dependencies
+- ✅ **integration-tests**: Integration tests for the framework
 
 ## Getting Started
 
@@ -103,7 +102,7 @@ sbt testVertexConnection
 sbt runWorkflowDemo
 
 # Run the Factorio-inspired Circuit Patterns Demo
-./modules/demo/run-circuit-demo.sh
+sbt "core/runMain com.agenticai.core.memory.circuits.examples.TextProcessingDemo"
 ```
 
 ## Circuit Patterns
@@ -123,8 +122,8 @@ The framework includes a powerful circuit-based architecture inspired by Factori
 The framework includes an interactive terminal demo that visualizes these circuit patterns:
 
 ```bash
-# Run the Factorio Circuit Patterns Demo
-./modules/demo/run-circuit-demo.sh
+# Run the TextProcessingDemo in the core module
+sbt "core/runMain com.agenticai.core.memory.circuits.examples.TextProcessingDemo"
 ```
 
 This demo showcases:
@@ -134,7 +133,7 @@ This demo showcases:
 - Clock mechanisms controlling timing
 - Bit packing for data compression
 
-See the [Circuit Demo README](modules/demo/CIRCUIT_DEMO_README.md) for more details and the [Factorio Circuit Implementation](docs/theory/FactorioCircuitImplementation.md) for theoretical background.
+See the [Factorio Circuit Implementation](docs/theory/FactorioCircuitImplementation.md) for theoretical background.
 
 ### Using Circuit Patterns
 
