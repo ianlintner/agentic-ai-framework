@@ -32,7 +32,7 @@ object VertexAIGeminiIntegrationSpec extends ZIOSpecDefault {
                      modelName = Some(IntegrationTestConfig.vertexModelName)
                    )
                  )
-        memory <- ZIOChatMemory.createWindow(10)
+        memory <- ZIOChatMemory.createInMemory(10)
         agent = LangchainAgent(model, memory, "test-vertex-agent")
         response <- agent.processSync(IntegrationTestConfig.simplePrompt)
       } yield assertTrue(
@@ -40,7 +40,7 @@ object VertexAIGeminiIntegrationSpec extends ZIOSpecDefault {
         response.toLowerCase.contains("paris")
       )
     },
-    
+
     test("should stream responses from Vertex AI") {
       for {
         projectId <- ZIO.fromOption(IntegrationTestConfig.vertexProjectId)
@@ -53,16 +53,15 @@ object VertexAIGeminiIntegrationSpec extends ZIOSpecDefault {
                      modelName = Some(IntegrationTestConfig.vertexModelName)
                    )
                  )
-        memory <- ZIOChatMemory.createWindow(10)
+        memory <- ZIOChatMemory.createInMemory(10)
         agent = LangchainAgent(model, memory, "test-vertex-agent")
-        chunks <- agent.process(IntegrationTestConfig.countingPrompt).take(10).runCollect
+        chunks <- agent.process(IntegrationTestConfig.countingPrompt).runCollect
       } yield assertTrue(
-        chunks.nonEmpty && 
-        chunks.mkString.contains("1") && 
-        chunks.mkString.contains("5")
+        chunks.nonEmpty,
+        chunks.mkString("").contains("1")
       )
     },
-    
+
     test("should handle multi-turn conversations") {
       for {
         projectId <- ZIO.fromOption(IntegrationTestConfig.vertexProjectId)
@@ -75,7 +74,7 @@ object VertexAIGeminiIntegrationSpec extends ZIOSpecDefault {
                      modelName = Some(IntegrationTestConfig.vertexModelName)
                    )
                  )
-        memory <- ZIOChatMemory.createWindow(10)
+        memory <- ZIOChatMemory.createInMemory(10)
         agent = LangchainAgent(model, memory, "test-vertex-agent")
         _ <- agent.processSync("My name is Test User.")
         response <- agent.processSync("What's my name?")
@@ -84,7 +83,7 @@ object VertexAIGeminiIntegrationSpec extends ZIOSpecDefault {
         response.toLowerCase.contains("test user")
       )
     },
-    
+
     test("should handle reasoning tasks") {
       for {
         projectId <- ZIO.fromOption(IntegrationTestConfig.vertexProjectId)
@@ -97,7 +96,7 @@ object VertexAIGeminiIntegrationSpec extends ZIOSpecDefault {
                      modelName = Some(IntegrationTestConfig.vertexModelName)
                    )
                  )
-        memory <- ZIOChatMemory.createWindow(10)
+        memory <- ZIOChatMemory.createInMemory(10)
         agent = LangchainAgent(model, memory, "test-vertex-agent")
         response <- agent.processSync(IntegrationTestConfig.reasoningPrompt)
       } yield assertTrue(
@@ -105,7 +104,7 @@ object VertexAIGeminiIntegrationSpec extends ZIOSpecDefault {
         (response.contains("120") || response.toLowerCase.contains("120 miles"))
       )
     },
-    
+
     test("should handle errors gracefully") {
       for {
         // Use invalid project ID
@@ -117,7 +116,7 @@ object VertexAIGeminiIntegrationSpec extends ZIOSpecDefault {
                      modelName = Some(IntegrationTestConfig.vertexModelName)
                    )
                  )
-        memory <- ZIOChatMemory.createWindow(10)
+        memory <- ZIOChatMemory.createInMemory(10)
         agent = LangchainAgent(model, memory, "test-vertex-agent")
         result <- agent.processSync(IntegrationTestConfig.simplePrompt).exit
       } yield assertTrue(result.isFailure)

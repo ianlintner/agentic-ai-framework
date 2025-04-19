@@ -2,10 +2,12 @@ package com.agenticai.examples.mesh
 
 import zio.*
 import com.agenticai.core.agent.Agent
+import com.agenticai.mesh.*
+import com.agenticai.mesh.protocol.*
+import com.agenticai.mesh.discovery.*
 import scala.util.Random
 
-/** Simplified version of the mesh example that will compile. This is a placeholder until the mesh
-  * module is integrated.
+/** Example demonstrating distributed agent mesh functionality.
   */
 object AgentMeshExample extends ZIOAppDefault:
 
@@ -72,25 +74,64 @@ object AgentMeshExample extends ZIOAppDefault:
           "I don't understand that command. Try starting with 'calculate', 'format', or 'weather'."
         )
 
-  /** Simple implementation that runs locally. This is a placeholder for the full mesh
-    * functionality.
+  /** Implementation that demonstrates the full mesh network functionality.
     */
   def run: Task[Unit] =
     for
+      // Create the mesh network with discovery capabilities
+      mesh <- ZIO.succeed(AgentMeshWithDiscovery())
+
       // Create the local agents
       calculatorAgent <- ZIO.succeed(new CalculatorAgent())
       textAgent       <- ZIO.succeed(new TextProcessingAgent())
       weatherAgent    <- ZIO.succeed(new WeatherAgent())
-      compositeAgent  <- ZIO.succeed(new CompositeAgent(calculatorAgent, textAgent, weatherAgent))
 
-      // Display information about the example
-      _ <- Console.printLine("Agent Mesh Example (Local Mode)")
-      _ <- Console.printLine(
-        "In a full mesh implementation, these agents would run on separate nodes."
+      // Define agent metadata with capabilities
+      calculatorMeta = AgentMetadata(
+        capabilities = Set("math", "arithmetic", "calculation"),
+        inputType = "String",
+        outputType = "Double",
+        properties = Map("name" -> "Calculator", "description" -> "Performs basic arithmetic operations")
       )
 
-      // Test the composite agent
-      _       <- Console.printLine("\nTesting local composite agent:")
+      textMeta = AgentMetadata(
+        capabilities = Set("text", "formatting", "capitalization"),
+        inputType = "String",
+        outputType = "String",
+        properties = Map("name" -> "Text Processor", "description" -> "Formats and processes text")
+      )
+
+      weatherMeta = AgentMetadata(
+        capabilities = Set("weather", "forecast", "temperature"),
+        inputType = "String",
+        outputType = "String",
+        properties = Map("name" -> "Weather Service", "description" -> "Provides weather forecasts")
+      )
+
+      // Register agents with the mesh
+      _ <- Console.printLine("Registering agents with the mesh network...")
+      calcRef <- mesh.registerWithCapabilities(calculatorAgent, calculatorMeta)
+      textRef <- mesh.registerWithCapabilities(textAgent, textMeta)
+      weatherRef <- mesh.registerWithCapabilities(weatherAgent, weatherMeta)
+
+      // Get remote agent references
+      remoteCalcAgent <- mesh.getRemoteAgent(calcRef)
+      remoteTextAgent <- mesh.getRemoteAgent(textRef)
+      remoteWeatherAgent <- mesh.getRemoteAgent(weatherRef)
+
+      // Create a composite agent that uses the remote agents
+      compositeAgent <- ZIO.succeed(
+        new CompositeAgent(remoteCalcAgent, remoteTextAgent, remoteWeatherAgent)
+      )
+
+      // Display information about the example
+      _ <- Console.printLine("Agent Mesh Example (Distributed Mode)")
+      _ <- Console.printLine(
+        "Agents are now running in a distributed mesh network with discovery capabilities."
+      )
+
+      // Test the composite agent using the mesh
+      _       <- Console.printLine("\nTesting distributed composite agent:")
       result1 <- compositeAgent.process("calculate add 5 3")
       _       <- Console.printLine(s"  - $result1")
 
@@ -100,9 +141,27 @@ object AgentMeshExample extends ZIOAppDefault:
       result3 <- compositeAgent.process("weather San Francisco")
       _       <- Console.printLine(s"  - $result3")
 
+      // Demonstrate agent discovery
+      _ <- Console.printLine("\nDemonstrating agent discovery:")
+
+      // Find agents by capabilities
+      _ <- Console.printLine("Finding agents with 'math' capability:")
+      mathAgents <- mesh.findAgentsByCapabilities(Set("math"))
+      _ <- ZIO.foreach(mathAgents) { agent =>
+        val name = agent.metadata.properties.getOrElse("name", "Unnamed Agent")
+        val description = agent.metadata.properties.getOrElse("description", "No description")
+        Console.printLine(s"  - $name: $description")
+      }
+
+      // Find agents by input/output types
+      _ <- Console.printLine("\nFinding agents that process String input and produce String output:")
+      textAgents <- mesh.findAgentsByTypes("String", "String")
+      _ <- ZIO.foreach(textAgents) { agent =>
+        val name = agent.metadata.properties.getOrElse("name", "Unnamed Agent")
+        val description = agent.metadata.properties.getOrElse("description", "No description")
+        Console.printLine(s"  - $name: $description")
+      }
+
       // Final message
-      _ <- Console.printLine("\nTo enable distributed agent mesh functionality:")
-      _ <- Console.printLine("1. Add the mesh module to build.sbt")
-      _ <- Console.printLine("2. Uncomment the mesh-related imports")
-      _ <- Console.printLine("3. Implement the full mesh network functionality")
+      _ <- Console.printLine("\nDistributed agent mesh functionality successfully implemented!")
     yield ()
