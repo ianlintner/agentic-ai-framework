@@ -1,103 +1,137 @@
-# Dependency Fix Plan
+# Dependency and Module Fix Plan
 
-After running `sbt test`, we've identified several critical issues that need to be addressed to align with our .roorules requirement of having "Always be buildable and testable" code. This document outlines the issues and provides an implementation plan to fix them.
+**Author:** Documentation Team  
+**Date:** April 19, 2025  
+**Version:** 1.0.0
 
-## Current Issues
+## Overview
 
-1. **Missing ZIO Dependencies**:
-   - Error: `Not found: zio` in multiple files
-   - This is a critical issue as our entire framework is built on ZIO
+This document outlines the plan to address several technical debt issues identified in the Agentic AI Framework codebase. These issues include non-existent module references, build configuration inconsistencies, placeholder implementations, and integration test setup problems.
 
-2. **Missing Google Cloud Dependencies**:
-   - Error: `Error downloading com.google.cloud:google-cloud-vertexai:3.7.0`
-   - Error: `value google is not a member of com`
+## Identified Issues
 
-3. **Java/Scala API Compatibility Issues**:
-   - Error in `VertexAIClaudeDemo`: `value getOrDefault is not a member of Map[String, String]`
+### 1. Non-existent Module References
 
-## Implementation Plan
+The codebase contains references to modules that don't exist:
 
-### Phase 1: Fix Dependencies in project/Dependencies.scala
+- **modules/demo**: Referenced in VSCode tabs but doesn't exist in the filesystem or build configuration.
 
-```scala
-// Current Dependencies.scala needs to be updated with:
+**Fix Plan:**
+- Remove references to non-existent modules from documentation
+- Update IDE configurations to remove non-existent module references
+- Ensure all referenced modules exist in the filesystem and build configuration
 
-object Dependencies {
-  object Versions {
-    val zio = "2.0.15" // Latest stable ZIO version
-    val zioStreams = "2.0.15"
-    val zioTest = "2.0.15"
-    val googleCloud = "3.5.0" // Use a verified available version
-    val googleAuth = "1.19.0"
-  }
+### 2. Build Configuration Inconsistencies
 
-  // Core dependencies
-  val coreDependencies = Seq(
-    "dev.zio" %% "zio" % Versions.zio,
-    "dev.zio" %% "zio-streams" % Versions.zioStreams
-  )
+There are inconsistencies in the build configuration across modules:
 
-  // Agent dependencies including Google Cloud
-  val agentDependencies = Seq(
-    "com.google.cloud" % "google-cloud-aiplatform" % Versions.googleCloud,
-    "com.google.auth" % "google-auth-library-oauth2-http" % Versions.googleAuth
-  )
+- **ZIO HTTP Versions**: Different modules use different versions of ZIO HTTP:
+  - Dashboard module: ZIO HTTP 3.0.0-RC2
+  - HTTP module: ZIO HTTP 3.0.0-RC2
+  - Workflow Demo module: ZIO HTTP 3.0.0-RC4
 
-  // Add appropriate test dependencies
-  val testDependencies = Seq(
-    "dev.zio" %% "zio-test" % Versions.zioTest % Test,
-    "dev.zio" %% "zio-test-sbt" % Versions.zioTest % Test
-  )
-}
-```
+**Fix Plan:**
+- Standardize on a single version of ZIO HTTP across all modules
+- Update all module build files to use the standardized version
+- Test all modules with the standardized version to ensure compatibility
+- Document any necessary workarounds if full standardization isn't immediately possible
 
-### Phase 2: Fix Java/Scala Compatibility in VertexAIClaudeDemo
+### 3. Placeholder Implementations in Langchain4j Module
 
-```scala
-// Add import for Java conversions
-import scala.jdk.CollectionConverters._
+The Langchain4j module contains placeholder implementations for some features:
 
-// Change the sys.env.getOrDefault to:
-projectId: String = sys.env.getOrElse("GOOGLE_CLOUD_PROJECT", ""),
-```
+- **Tool Support**: Marked as "Planned" (🔮) but referenced in documentation
+- **Advanced Langchain4j Features**: Some features marked as "In Progress" (🚧)
 
-### Phase 3: Update build.sbt for Proper Dependency Management
+**Fix Plan:**
+- Clearly document the status of each feature in the Langchain4j module
+- Prioritize implementation of critical features
+- Create a roadmap for implementing remaining features
+- Update documentation to accurately reflect the current state of implementation
 
-Ensure the build.sbt file properly includes all necessary dependencies for each module and has appropriate cross-version settings for Scala 3.
+### 4. Workflow Demo Module Configuration Issues
 
-### Phase 4: Test Incrementally
+The Workflow Demo module has configuration issues:
 
-1. Fix base dependencies first
-2. Compile only core module: `sbt core/compile`
-3. Add dependencies for each module progressively
-4. Test each module as it becomes compilable
+- **Dependency Decoupling**: Temporarily removed dependencies on core and memory modules
+- **ZIO HTTP Version**: Uses a different version than other modules
+
+**Fix Plan:**
+- Document the current workaround in the troubleshooting guide
+- Create a plan to properly integrate with core and memory modules
+- Test the integration to ensure compatibility
+- Update the build configuration once integration is successful
+
+### 5. Integration Tests Module Integration
+
+There are issues with the integration tests setup:
+
+- **Dual Structure**: Two separate integration test setups (`it/` and `modules/integration-tests/`)
+- **Build Integration**: The `it` module is commented out in the main build.sbt aggregation
+
+**Fix Plan:**
+- Document the current integration test setup
+- Create a plan to consolidate the integration test structure
+- Update the build configuration to properly include integration tests
+- Ensure all integration tests are properly executed in the CI/CD pipeline
+
+## Implementation Timeline
+
+### Phase 1: Documentation Updates (Completed)
+
+- ✅ Update README.md to remove references to non-existent modules
+- ✅ Update ProjectStructure.md to accurately reflect the current module structure
+- ✅ Update Langchain4jIntegration.md to clarify the status of placeholder implementations
+- ✅ Create IntegrationTestsSetup.md to document the current integration test setup
+- ✅ Update WorkflowDemo_TroubleshootingGuide.md to document configuration issues
+
+### Phase 2: Build Configuration Standardization (Weeks 1-2)
+
+- Standardize ZIO HTTP version across all modules
+- Update all module build files to use the standardized version
+- Test all modules with the standardized version
+- Document any necessary workarounds
+
+### Phase 3: Module Integration (Weeks 3-4)
+
+- Properly integrate Workflow Demo with core and memory modules
+- Consolidate integration test structure
+- Update build configuration to properly include integration tests
+- Test all integrations to ensure compatibility
+
+### Phase 4: Feature Implementation (Weeks 5-8)
+
+- Implement missing features in Langchain4j module
+- Update documentation to reflect new implementations
+- Create comprehensive tests for new features
+- Ensure all modules pass tests and compile successfully
 
 ## Success Criteria
 
-1. **Compile Success**: `sbt compile` completes without errors
-2. **Test Success**: `sbt test` runs and passes tests
-3. **Demo Runs**: `sbt "runMain com.agenticai.examples.VertexAIClaudeDemo"` executes successfully
+The following criteria will be used to determine the success of this plan:
 
-## Timeline
+1. **Documentation Accuracy**: All documentation accurately reflects the current state of the codebase
+2. **Build Consistency**: All modules use consistent versions of dependencies
+3. **Module Integration**: All modules are properly integrated and can be used together
+4. **Test Coverage**: All modules have comprehensive tests that pass
+5. **Feature Completeness**: All planned features are implemented or have a clear implementation plan
 
-- Day 1: Fix ZIO dependencies and verify core module compiles
-- Day 2: Fix Google Cloud dependencies and verify integration modules compile
-- Day 3: Fix all remaining issues and ensure all tests pass
+## Risks and Mitigations
 
-## Measuring Alignment with Goals and Rules
+### Risks
 
-Our .roorules document states:
-- "Always be buildable and testable"
-- "Every change must compile successfully with `sbt compile`"
-- "All tests must pass with `sbt test`"
+1. **Dependency Conflicts**: Standardizing dependencies may cause conflicts with existing code
+2. **Integration Complexity**: Integrating modules may be more complex than anticipated
+3. **Feature Implementation Challenges**: Implementing missing features may be more difficult than expected
+4. **Test Coverage Gaps**: Some areas may lack adequate test coverage
 
-Our goals.md includes:
-- "Integration with common ai clients with zio wrappers"
-- "Always be buildable and testable"
+### Mitigations
 
-These fixes directly address these requirements by ensuring:
-1. The ZIO foundation works correctly
-2. The Google Vertex AI integration can be properly implemented
-3. The project compiles and tests can run
+1. **Incremental Approach**: Implement changes incrementally and test thoroughly at each step
+2. **Comprehensive Testing**: Ensure all changes are thoroughly tested before merging
+3. **Documentation**: Document all changes and any workarounds needed
+4. **Code Reviews**: Ensure all changes are reviewed by appropriate team members
 
-After completing this plan, we'll be back on track with our core principles and can continue implementing the ambitious goals outlined in our enhanced goals document.
+## Conclusion
+
+Addressing these technical debt issues will improve the maintainability, reliability, and usability of the Agentic AI Framework. By following this plan, we can ensure that the codebase is consistent, well-documented, and properly integrated.

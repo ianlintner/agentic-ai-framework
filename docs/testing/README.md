@@ -1,127 +1,172 @@
-# Testing Documentation for Agentic AI Framework
+# Testing Documentation
 
-This directory contains comprehensive documentation about the testing approach and test suites in the Agentic AI Framework.
+**Author:** ZIO Agentic AI Framework Team  
+**Date:** April 19, 2025  
+**Version:** 1.0.0
 
 ## Overview
 
-The Agentic AI Framework has a robust testing strategy that covers various components and integration points. The documentation is organized by functional area to provide clear guidance on testing approaches and existing test coverage.
+This directory contains documentation related to testing the ZIO Agentic AI Framework. The framework uses a comprehensive testing approach that includes unit tests, property-based tests, integration tests, and application tests.
 
-## Documentation Structure
+## Testing Philosophy
 
-- [Testing Summary](TestingSummary.md) - High-level overview of all testing
-- [Memory System Tests](MemorySystemTests.md) - Details on memory system test coverage
-- [Circuit Pattern Tests](CircuitPatternTests.md) - Information on testing agent circuit components
-- [LLM Integration Tests](LLMIntegrationTests.md) - Guide to testing LLM integrations
-- [Application and Integration Tests](ApplicationAndIntegrationTests.md) - Guide to testing complete applications
-- [VertexAI Integration](VertexAIIntegration.md) - Specific guide for testing Vertex AI integration
+The ZIO Agentic AI Framework follows these testing principles:
 
-## Key Testing Principles
+1. **Test-Driven Development**: Tests are written before or alongside code to ensure functionality meets requirements.
+2. **Property-Based Testing**: Complex logic is tested using property-based tests to verify behavior across a wide range of inputs.
+3. **Integration Testing**: Components are tested together to ensure they work correctly as a system.
+4. **Application Testing**: End-to-end tests verify that the framework works correctly in realistic scenarios.
+5. **ZIO-Based Testing**: All effectful test code uses ZIO for consistency and reliability.
 
-1. **Isolation**: Each component is tested in isolation with appropriate mocks
-2. **Composition**: Complex components are tested through composition of simpler parts
-3. **Coverage**: Tests aim to cover normal operation, edge cases, and error conditions
-4. **Performance**: Critical paths include performance tests to ensure efficiency
-5. **Resource Safety**: Tests verify resources are properly acquired and released
+## Test Types
 
-## Running Tests
+### Unit Tests
 
-### Basic Test Commands
+Unit tests verify that individual components work correctly in isolation. They are located in the `src/test/scala` directory of each module.
+
+### Property-Based Tests
+
+Property-based tests verify that components satisfy certain properties across a wide range of inputs. They use libraries like ScalaCheck and ZIO Test to generate test cases.
+
+### Integration Tests
+
+Integration tests verify that different modules work together correctly. They are located in the `it/` directory and the `modules/integration-tests/` directory.
+
+### Application Tests
+
+Application tests verify that the framework works correctly in realistic scenarios. They are located in various modules, particularly in the `examples` module.
+
+## Test Documentation Index
+
+| Document | Description |
+|----------|-------------|
+| [ApplicationAndIntegrationTests.md](ApplicationAndIntegrationTests.md) | Guide to application and integration testing |
+| [CircuitPatternTests.md](CircuitPatternTests.md) | Guide to testing circuit patterns |
+| [IntegrationTestsSetup.md](IntegrationTestsSetup.md) | Setup guide for integration tests |
+| [LLMIntegrationTests.md](LLMIntegrationTests.md) | Guide to testing LLM integrations |
+| [MemorySystemTests.md](MemorySystemTests.md) | Guide to testing the memory system |
+| [TestingSummary.md](TestingSummary.md) | Summary of testing approach |
+| [VertexAIIntegration.md](VertexAIIntegration.md) | Guide to testing Vertex AI integration |
+
+## Test Setup
+
+### Prerequisites
+
+- Java 11 or later
+- Scala 3.3.1 or later
+- SBT (Scala Build Tool)
+
+### Running Tests
+
+To run all tests:
 
 ```bash
-# Run all tests
 sbt test
-
-# Run specific test suite
-sbt "testOnly com.agenticai.core.memory.MemorySystemSpec"
-
-# Run tests in a specific package
-sbt "testOnly com.agenticai.core.memory.*"
-
-# Run integration tests
-sbt it:test
 ```
 
-### Test Configuration
-
-Some tests can be configured through environment variables:
+To run tests for a specific module:
 
 ```bash
-# Configure logging level for tests
-export AGENTIC_LOG_LEVEL=DEBUG
-
-# Configure Vertex AI testing
-export GOOGLE_CLOUD_PROJECT="your-gcp-project-id"
-export VERTEX_LOCATION="us-central1"
+sbt "core/test"
 ```
 
-## Test Coverage Areas
+To run integration tests:
 
-The framework has tests covering these major areas:
+```bash
+sbt it/test
+```
 
-1. **Memory System**: Storage, retrieval, cleanup, and monitoring
-2. **Circuit Patterns**: Functional combinators and agent composition
-3. **LLM Integration**: Communication with language models
-4. **Applications**: End-to-end testing of complete applications
+### Generating Test Reports
 
-## Adding New Tests
+The project includes advanced test reporting tools:
 
-When adding new components to the framework, follow these guidelines:
+```bash
+# Generate test reports with coverage for all modules
+./scripts/run-tests-with-reports.sh --all
 
-1. Create tests that verify component behavior in isolation
-2. Create tests that verify integration with other components
-3. Include tests for normal operation, edge cases, and error scenarios
-4. Use appropriate patterns (ZIO, mocks, etc.) consistent with existing tests
-5. Update documentation to describe the new tests
+# Generate test reports for specific modules
+./scripts/run-tests-with-reports.sh --modules=core,mesh
 
-## Test Tagging
+# Skip coverage reports for faster execution
+./scripts/run-tests-with-reports.sh --modules=core --skip-coverage
+```
 
-Tests use ZIO's test tags to categorize tests for selective execution:
+## Test Structure
+
+Each test file follows a consistent structure:
+
+1. **Imports**: Required imports for the test
+2. **Test Suite**: A ZIO Test suite containing related tests
+3. **Test Cases**: Individual test cases that verify specific behaviors
+4. **Test Fixtures**: Shared setup and teardown code
+5. **Test Utilities**: Helper functions for the tests
+
+Example:
 
 ```scala
-test("example")(
-  // Test body
-) @@ TestAspect.tagged(Tags.Integration)
+import zio.test._
+import zio.test.Assertion._
+import com.agenticai.core.Agent
+
+object AgentSpec extends ZIOSpecDefault {
+  def spec = suite("Agent")(
+    test("should process messages") {
+      // Test implementation
+    },
+    test("should handle errors") {
+      // Test implementation
+    }
+  )
+}
 ```
 
-Common tags include:
-- `Unit`: Basic unit tests
-- `Integration`: Tests requiring component integration
-- `Slow`: Tests that take longer to execute
-- `Resource`: Tests that require external resources
+## Best Practices
 
-## Continuous Integration
+### Writing Good Tests
 
-Tests are run as part of CI/CD pipelines to ensure ongoing quality. The pipeline:
+1. **Test One Thing**: Each test should verify a single behavior
+2. **Descriptive Names**: Test names should clearly describe what is being tested
+3. **Arrange-Act-Assert**: Structure tests with setup, action, and verification
+4. **Independent Tests**: Tests should not depend on each other
+5. **Fast Tests**: Tests should run quickly to enable rapid feedback
 
-1. Runs unit tests on every pull request
-2. Runs integration tests before merging to main branches
-3. Generates test coverage reports
-4. Ensures no regressions are introduced
+### Testing Asynchronous Code
 
-## Performance Testing
+1. **Use ZIO**: Use ZIO for testing asynchronous code
+2. **Timeouts**: Add timeouts to prevent tests from hanging
+3. **Resource Management**: Use ZIO's resource management to ensure proper cleanup
 
-Performance-critical components include performance tests that:
+### Testing External Services
 
-1. Measure throughput and latency
-2. Compare against baseline performance
-3. Verify behavior under load
-4. Test resource usage efficiency
+1. **Mock External Services**: Use mocks for external services in unit tests
+2. **Integration Tests**: Use real external services in integration tests
+3. **Test Environments**: Use test environments for external services
 
-## Test Mocks and Utilities
+## Troubleshooting
 
-The framework includes several testing utilities:
+### Common Issues
 
-- Mock LLM clients for testing without API calls
-- TestClock utilities for time-dependent testing
-- Resource management helpers for tests using external resources
-- Mock implementations of core interfaces
+1. **Flaky Tests**: Tests that sometimes pass and sometimes fail
+2. **Slow Tests**: Tests that take too long to run
+3. **Resource Leaks**: Tests that don't properly clean up resources
 
-## Contributing to Tests
+### Solutions
 
-When contributing to the test suite:
+1. **Flaky Tests**: Identify and fix the source of non-determinism
+2. **Slow Tests**: Optimize test setup and execution
+3. **Resource Leaks**: Use ZIO's resource management to ensure proper cleanup
 
-1. Follow the existing patterns and conventions
-2. Ensure tests are deterministic and not flaky
-3. Document test purpose and approach
-4. Consider edge cases and error conditions
-5. Update relevant documentation files
+## Contributing
+
+When contributing new code to the framework, please follow these guidelines:
+
+1. **Write Tests**: All new code should have tests
+2. **Run Tests**: Ensure all tests pass before submitting a PR
+3. **Test Coverage**: Aim for high test coverage
+4. **Test Quality**: Write high-quality tests that verify behavior, not implementation
+
+## References
+
+- [ZIO Test Documentation](https://zio.dev/reference/test/)
+- [ScalaCheck Documentation](https://github.com/typelevel/scalacheck/blob/main/doc/UserGuide.md)
+- [SBT Documentation](https://www.scala-sbt.org/1.x/docs/index.html)

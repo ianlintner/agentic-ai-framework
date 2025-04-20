@@ -1,8 +1,8 @@
-# Langchain4j + ZIO Integration Design Document
+# Langchain4j + ZIO Agentic AI Framework Integration Design Document
 
 ## Executive Summary
 
-This document outlines a strategy to integrate Langchain4j with our existing ZIO-based agentic AI framework. By leveraging Langchain4j for LLM interactions, we can focus our development efforts on the agentic/task components of our system while delegating LLM management to a mature library. This approach will solve several existing issues, including the TestClock challenges we're experiencing, while providing a more robust foundation for future development.
+This document outlines a strategy to integrate Langchain4j with our ZIO Agentic AI Framework. By leveraging Langchain4j for LLM interactions, we can focus our development efforts on the agentic/task components of our system while delegating LLM management to a mature library. This approach will solve several existing issues, including the TestClock challenges we're experiencing, while providing a more robust foundation for future development.
 
 ## Objectives
 
@@ -254,193 +254,177 @@ object LangchainAgent {
           )
         // Other model types
       }
-      memory <- ZIOChatMemory.createWindow(maxHistory * 2) // User + Assistant messages
+      memory <- ZIOChatMemory.createWindow(maxHistory)
     } yield LangchainAgent(model, memory, name)
   }
 }
-
-// Supporting types
-sealed trait ModelType
-object ModelType {
-  case object Claude extends ModelType
-  case object VertexAI extends ModelType
-  // Other model types
-}
-
-case class ModelConfig(
-  apiKey: Option[String] = None,
-  projectId: Option[String] = None,
-  location: Option[String] = None,
-  modelName: Option[String] = None
-)
 ```
 
-### Phase 3: Testing Framework
+### Phase 3: Testing Infrastructure
 
 #### 3.1 Test Mocks Implementation
 
 ```scala
-package com.agenticai.core.llm.langchain.test
+package com.agenticai.core.llm.langchain.testing
 
 import com.agenticai.core.llm.langchain._
 import dev.langchain4j.model.chat._
 import zio._
 import zio.stream._
 
-class MockChatLanguageModel(responses: Map[String, String] = Map.empty) extends ZIOChatLanguageModel {
-  private val defaultResponse = "I am a mock AI assistant."
-  
+// Mock implementation for testing
+class MockChatLanguageModel(responses: Map[String, String]) extends ZIOChatLanguageModel {
   override def generate(request: ChatLanguageModel.Request): ZIO[Any, Throwable, ChatLanguageModel.Response] = {
     // Extract the last user message
-    val lastUserMessage = extractLastUserMessage(request)
+    val lastUserMessage = request.messages.asScala.last.text
     
-    // Look up the response or use default
-    val responseText = responses.getOrElse(lastUserMessage, defaultResponse)
+    // Look up the response or provide a default
+    val responseText = responses.getOrElse(lastUserMessage, "I don't know how to respond to that.")
     
     // Create a response
-    ZIO.succeed(createMockResponse(responseText))
+    ZIO.succeed(
+      ChatLanguageModel.Response.from(
+        dev.langchain4j.data.message.AiMessage.from(responseText)
+      )
+    )
   }
   
   override def generateStream(request: ChatLanguageModel.Request): ZStream[Any, Throwable, String] = {
-    // Extract the last user message
-    val lastUserMessage = extractLastUserMessage(request)
-    
-    // Look up the response or use default
-    val responseText = responses.getOrElse(lastUserMessage, defaultResponse)
-    
-    // Create a stream of the response
-    ZStream.succeed(responseText)
-  }
-  
-  // Helper methods
-  private def extractLastUserMessage(request: ChatLanguageModel.Request): String = {
-    // Implementation details
-    ""
-  }
-  
-  private def createMockResponse(text: String): ChatLanguageModel.Response = {
-    // Implementation details
-    null
+    // For simplicity, we'll just split the response into words for streaming
+    ZStream.fromZIO(generate(request))
+      .flatMap { response =>
+        val words = response.content.text.split(" ")
+        ZStream.fromIterable(words.map(_ + " "))
+      }
   }
 }
 
 object MockChatLanguageModel {
-  def make(responses: Map[String, String] = Map.empty): UIO[ZIOChatLanguageModel] =
-    ZIO.succeed(new MockChatLanguageModel(responses))
+  def make(responses: Map[String, String]): ZIOChatLanguageModel =
+    new MockChatLanguageModel(responses)
     
-  def layer(responses: Map[String, String] = Map.empty): ZLayer[Any, Nothing, ZIOChatLanguageModel] =
-    ZLayer.succeed(new MockChatLanguageModel(responses))
+  def layer(responses: Map[String, String]): ZLayer[Any, Nothing, ZIOChatLanguageModel] =
+    ZLayer.succeed(make(responses))
 }
 ```
 
 #### 3.2 Test Utilities
 
 ```scala
-package com.agenticai.core.llm.langchain.test
+package com.agenticai.core.llm.langchain.testing
 
-import com.agenticai.core.agents.Agent
 import com.agenticai.core.llm.langchain._
 import zio._
 import zio.test._
 
-object AgentTestUtils {
-  def createMockAgent(
-    responses: Map[String, String] = Map.empty,
+object LangchainTestUtils {
+  // Create a test environment with mocked responses
+  def testEnvironment(responses: Map[String, String]): ZLayer[Any, Nothing, ZIOChatLanguageModel] =
+    MockChatLanguageModel.layer(responses)
+  
+  // Create a test agent with mocked responses
+  def testAgent(
+    responses: Map[String, String],
     name: String = "test-agent",
     maxHistory: Int = 10
   ): ZIO[Any, Nothing, Agent] = {
     for {
-      mockModel <- MockChatLanguageModel.make(responses)
-      memory <- ZIOChatMemory.createWindow(maxHistory * 2)
-    } yield LangchainAgent(mockModel, memory, name)
+      model <- ZIO.succeed(MockChatLanguageModel.make(responses))
+      memory <- ZIOChatMemory.createWindow(maxHistory)
+    } yield LangchainAgent(model, memory, name)
   }
   
-  def testAgent(
-    testName: String,
-    input: String,
-    expectedOutput: String,
-    responses: Map[String, String] = Map.empty
+  // Test spec for verifying agent behavior
+  def agentSpec(
+    responses: Map[String, String],
+    testCases: List[(String, String)]
   ): Spec[Any, Throwable] = {
-    test(testName) {
-      for {
-        agent <- createMockAgent(responses)
-        output <- agent.processSync(input)
-      } yield assertTrue(output.contains(expectedOutput))
-    }
+    suite("Agent Tests")(
+      testM("should respond correctly to prompts") {
+        for {
+          agent <- testAgent(responses)
+          results <- ZIO.foreach(testCases) { case (input, expectedOutput) =>
+            agent.processSync(input).map(output => (output, expectedOutput))
+          }
+        } yield {
+          results.foreach { case (actual, expected) =>
+            assertTrue(actual == expected)
+          }
+        }
+      }
+    )
   }
 }
 ```
 
-## Instructions for AI Agents to Build Tests
+## Test Generation Guidelines
 
 ### Unit Test Generation Instructions
 
-AI agents should follow these guidelines when generating unit tests for the Langchain4j integration:
+AI agents should follow these guidelines when generating unit tests:
 
-1. **Test each component in isolation**
-   - Focus on one ZIO wrapper class at a time
-   - Use mock implementations for dependencies
-   - Test both success and error paths
+1. **Test ZIO wrappers**:
+   - Test that ZIO effects wrap Langchain4j operations correctly
+   - Verify error handling and resource management
+   - Use mocks for Langchain4j dependencies
 
-2. **For ZIOChatLanguageModel tests**:
+2. **Test factory methods**:
+   - Verify factory methods create correct model types
+   - Test configuration parameter handling
+   - Test error cases (missing credentials, etc.)
+
+3. **Example unit test**:
    ```scala
-   test("should generate responses successfully") {
+   test("ZIOChatLanguageModel should wrap Langchain4j model") {
+     val mockResponse = ChatLanguageModel.Response.from(AiMessage.from("Test response"))
+     val mockModel = new ChatLanguageModel {
+       override def generate(request: ChatLanguageModel.Request): ChatLanguageModel.Response = mockResponse
+     }
+     
+     val zioModel = ZIOChatLanguageModel(mockModel)
+     
      for {
-       mockModel <- MockChatLanguageModel.make(Map("Hello" -> "Hi there!"))
-       request = createTestRequest("Hello")
-       response <- mockModel.generate(request)
-     } yield assertTrue(response.content.text == "Hi there!")
+       response <- zioModel.generate(ChatLanguageModel.Request.from(UserMessage.from("Test")))
+     } yield assertTrue(response == mockResponse)
    }
    ```
-
-3. **For ZIOChatMemory tests**:
-   ```scala
-   test("should store and retrieve messages") {
-     for {
-       memory <- ZIOChatMemory.createWindow(10)
-       _ <- memory.addUserMessage("Hello")
-       _ <- memory.addAssistantMessage("Hi there!")
-       messages <- memory.messages
-     } yield assertTrue(
-       messages.size == 2 &&
-       messages.head.isInstanceOf[UserMessage] &&
-       messages(1).isInstanceOf[AiMessage]
-     )
-   }
-   ```
-
-4. **Use ZIO Test assertions extensively**:
-   - `assertTrue`, `assertZIO`, `assertCompletes`
-   - Test both success and failure cases
-   - Test edge conditions (empty inputs, etc.)
 
 ### Functional Test Generation Instructions
 
 AI agents should follow these guidelines when generating functional tests:
 
-1. **Test end-to-end agent behavior**
-   - Simulate multiple turns of conversation
-   - Verify memory retention
-   - Test with realistic inputs
+1. **Test agent behavior**:
+   - Test conversation flow with multiple turns
+   - Verify memory retention and context handling
+   - Test error recovery and graceful degradation
 
-2. **Example conversation test**:
+2. **Use mock models**:
+   - Create deterministic test scenarios with predefined responses
+   - Test edge cases and error conditions
+
+3. **Example functional test**:
    ```scala
-   test("should maintain context across multiple turns") {
+   test("Agent should maintain conversation context") {
+     val responses = Map(
+       "Hello" -> "Hi there!",
+       "What did I just say?" -> "You said 'Hello'",
+       "And what did you reply?" -> "I replied with 'Hi there!'"
+     )
+     
      for {
-       agent <- createMockAgent(Map(
-         "My name is John" -> "Nice to meet you, John!",
-         "What's my name?" -> "Your name is John."
-       ))
-       _ <- agent.processSync("My name is John")
-       response <- agent.processSync("What's my name?")
-     } yield assertTrue(response.contains("John"))
+       agent <- LangchainTestUtils.testAgent(responses)
+       response1 <- agent.processSync("Hello")
+       response2 <- agent.processSync("What did I just say?")
+       response3 <- agent.processSync("And what did you reply?")
+     } yield {
+       assertTrue(
+         response1 == "Hi there!",
+         response2 == "You said 'Hello'",
+         response3 == "I replied with 'Hi there!'"
+       )
+     }
    }
    ```
-
-3. **Test with realistic scenarios**:
-   - Information extraction
-   - Task planning
-   - Decision making
 
 ### Integration Test Generation Instructions
 
@@ -467,38 +451,52 @@ AI agents should follow these guidelines when generating integration tests:
    }
    ```
 
-## Phased Migration Strategy
+## Implementation Timeline
 
 ### Phase 1: Parallel Implementation (Weeks 1-2)
-- Implement core ZIO wrappers
-- Create basic test infrastructure
-- Deploy alongside existing implementation
+- Implement ZIO wrappers for Langchain4j models
+- Create factory methods for different LLM providers
+- Develop test infrastructure with mocks
 
 ### Phase 2: Feature Parity (Weeks 3-4)
-- Implement full agent functionality
-- Migrate memory system
-- Achieve functional parity with current system
+- Implement memory adapters
+- Create agent implementations
+- Develop streaming support
 
 ### Phase 3: Transition (Weeks 5-6)
-- Switch new code to use Langchain4j agents
-- Run parallel tests to verify equivalence
+- Migrate existing agents to new implementation
+- Update examples to use new implementation
 - Deprecate old implementation
 
 ### Phase 4: Cleanup (Weeks 7-8)
 - Remove deprecated code
-- Consolidate interfaces
-- Complete documentation
+- Finalize documentation
+- Complete test coverage
+
+## Current Implementation Status
+
+As of April 2025, the implementation status is:
+
+- ✅ **Implemented**: ZIO wrappers for Langchain4j models
+- ✅ **Implemented**: Factory methods for Claude and Vertex AI models
+- ✅ **Implemented**: Basic memory adapters
+- ✅ **Implemented**: Streaming support for chat models
+- 🚧 **In Progress**: Tool support integration
+- 🚧 **In Progress**: Advanced Langchain4j features
+- 🔮 **Planned**: RAG (Retrieval Augmented Generation) capabilities
+- 🔮 **Planned**: Agent types from Langchain4j
 
 ## Benefits
 
-1. **Focus on Core Value**: By delegating LLM integration to Langchain4j, we can focus on developing agentic behaviors and task execution.
+The Langchain4j integration provides several benefits:
 
-2. **Reduced Testing Complexity**: Simplified testing approach eliminates TestClock issues and provides more deterministic tests.
-
-3. **Future-Proofing**: Langchain4j maintains compatibility with evolving LLM APIs, reducing our maintenance burden.
-
-4. **Improved Developer Experience**: Clearer separation of concerns and simplified abstractions improve code readability and maintainability.
+1. **Reduced Maintenance**: Leverage a mature library for LLM interactions
+2. **Improved Testing**: Better test infrastructure with mocks and deterministic tests
+3. **Broader Model Support**: Access to more LLM providers through Langchain4j
+4. **Future-Proofing**: Easier to adopt new LLM features as they become available
+5. **Focus on Core Value**: More time to focus on agent behaviors and task execution
+6. **Community Alignment**: Leverage the broader Langchain4j community
 
 ## Conclusion
 
-Integrating Langchain4j with our ZIO-based framework allows us to leverage the strengths of both technologies: the functional programming paradigm and effect system of ZIO, combined with the mature LLM abstraction layer of Langchain4j. This strategic move will solve our existing testing issues while allowing us to focus our development resources on the agentic aspects of our framework.
+The Langchain4j integration represents a strategic shift in our approach to LLM interactions. By leveraging an established library, we can focus our development efforts on the unique value of our agentic framework while benefiting from the broader ecosystem of LLM tools and capabilities.

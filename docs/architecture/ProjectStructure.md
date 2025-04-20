@@ -1,6 +1,6 @@
-# Agentic AI Framework - Modular Project Structure
+# ZIO Agentic AI Framework - Modular Project Structure
 
-This document outlines the modular structure of the Agentic AI Framework, designed to provide better composition and allow consumers to use only the parts they need.
+This document outlines the modular structure of the ZIO Agentic AI Framework, designed to provide better composition and allow consumers to use only the parts they need.
 
 ## Implementation Status
 
@@ -22,7 +22,7 @@ The framework is divided into the following modules:
 7. ✅ **Workflow Demo** - Visual workflow UI builder demo
 8. ✅ **Langchain4j** - Integration with Langchain4j for LLM access
 9. 🚧 **Mesh** - Distributed agent mesh implementation
-6. **Examples** - Example applications
+10. 🚧 **Integration Tests** - Integration tests for the framework
 
 ## Module Contents
 
@@ -200,17 +200,57 @@ modules/examples/
 │       └── webdashboard/
 │           └── agents/
 │               └── TaskProcessorAgentSpec.scala
+```
+
 ### Workflow Demo Module (`modules/workflow-demo`)
 
 Contains a visual workflow UI builder demonstration.
 
 **Implementation Status**: ✅ **Implemented**
 
+**Note**: This module currently uses ZIO HTTP 3.0.0-RC4, which differs from the version used in other modules (3.0.0-RC2). The module has been temporarily configured to work independently of core and memory dependencies to ensure functionality.
+
+```
+modules/workflow-demo/
+├── src/
+│   ├── main/
+│   │   ├── resources/                   # Workflow demo resources
+│   │   │   └── public/                  # Static assets
+│   │   │       ├── index.html
+│   │   │       └── assets/
+│   │   └── scala/com/agenticai/workflow/
+│   │       ├── WorkflowDemoLauncher.scala
+│   │       ├── server/                  # Server implementation
+│   │       ├── agents/                  # Demo agents
+│   │       └── models/                  # Workflow models
+│   └── test/scala/com/agenticai/workflow/
+│       └── [Workflow tests]
+├── docs/
+│   ├── WorkflowDemo_Documentation.md
+│   └── WorkflowDemo_TroubleshootingGuide.md
+└── run-workflow-demo.sh                 # Startup script
+```
+
 ### Langchain4j Module (`modules/langchain4j`)
 
 Integration with Langchain4j for accessing LLM models.
 
-**Implementation Status**: ✅ **Implemented**
+**Implementation Status**: ✅ **Implemented** (with some features in progress)
+
+**Note**: While the core integration is implemented, some advanced features are still in development:
+- 🚧 **In Progress**: Tool support
+- 🚧 **In Progress**: Some advanced Langchain4j features
+
+```
+modules/langchain4j/
+├── src/
+│   ├── main/scala/com/agenticai/core/llm/langchain/
+│   │   ├── ZIOChatModelFactory.scala
+│   │   ├── VertexAIModelSupport.scala
+│   │   └── [Other integration files]
+│   └── test/scala/com/agenticai/core/llm/langchain/
+│       └── [Langchain4j tests]
+```
 
 ### Mesh Module (`modules/mesh`)
 
@@ -222,43 +262,45 @@ Distributed agent mesh network implementation.
 - 🔮 **Planned**: Advanced mesh features like agent migration
 
 ```
+modules/mesh/
+├── src/
+│   ├── main/scala/com/agenticai/mesh/
+│   │   ├── discovery/                   # Agent discovery
+│   │   ├── communication/               # Agent communication
+│   │   └── topology/                    # Mesh topology
+│   └── test/scala/com/agenticai/mesh/
+│       └── [Mesh tests]
+```
 
-## File Migration Plan
+### Integration Tests (`it` and `modules/integration-tests`)
 
-### Current Files to Migrate
+The framework currently has two separate integration test setups:
 
-This section outlines how existing files will map to the new modular structure.
+1. **Langchain4j Integration Tests** (`it/`): Focused on testing Langchain4j integration with real LLM providers.
 
-#### Core Files:
-- `src/main/scala/com/agenticai/core/Agent.scala` → `modules/core/src/main/scala/com/agenticai/core/Agent.scala`
-- `src/main/scala/com/agenticai/core/BaseAgent.scala` → `modules/core/src/main/scala/com/agenticai/core/BaseAgent.scala`
+**Implementation Status**: ✅ **Implemented**
 
-#### Memory Files:
-- `src/main/scala/com/agenticai/core/memory/MemoryCell.scala` → `modules/memory/src/main/scala/com/agenticai/memory/MemoryCell.scala`
-- `src/main/scala/com/agenticai/core/memory/MemorySystem.scala` → `modules/memory/src/main/scala/com/agenticai/memory/MemorySystem.scala`
-- `src/main/scala/com/agenticai/core/memory/PersistentMemorySystem.scala` → `modules/memory/src/main/scala/com/agenticai/memory/PersistentMemorySystem.scala`
-- `src/test/scala/com/agenticai/core/memory/MemoryCellSpec.scala` → `modules/memory/src/test/scala/com/agenticai/memory/MemoryCellSpec.scala`
-- `src/test/scala/com/agenticai/core/memory/MemorySystemSpec.scala` → `modules/memory/src/test/scala/com/agenticai/memory/MemorySystemSpec.scala`
-- `src/test/scala/com/agenticai/core/memory/PersistentMemorySystemSpec.scala` → `modules/memory/src/test/scala/com/agenticai/memory/PersistentMemorySystemSpec.scala`
+```
+it/
+├── src/
+│   └── test/scala/com/agenticai/core/llm/
+│       ├── ClaudeIntegrationSpec.scala
+│       ├── VertexAIGeminiIntegrationSpec.scala
+│       └── GoogleAIGeminiIntegrationSpec.scala
+```
 
-#### Agent Files:
-- `src/main/scala/com/agenticai/example/ChatAgent.scala` → `modules/agents/src/main/scala/com/agenticai/agents/chat/ChatAgent.scala`
-- `src/main/scala/com/agenticai/examples/webdashboard/agents/TaskProcessorAgent.scala` → `modules/agents/src/main/scala/com/agenticai/agents/task/TaskProcessor.scala`
-- `src/test/scala/com/agenticai/examples/webdashboard/agents/TaskProcessorAgentSpec.scala` → `modules/agents/src/test/scala/com/agenticai/agents/task/TaskProcessorSpec.scala`
+2. **Framework Integration Tests** (`modules/integration-tests/`): Tests for integration between framework modules.
 
-#### HTTP Files:
-- `src/main/scala/com/agenticai/examples/webdashboard/api/AgentAPI.scala` → `modules/http/src/main/scala/com/agenticai/http/api/AgentEndpoints.scala`
+**Implementation Status**: 🚧 **In Progress**
 
-#### Dashboard Files:
-- `src/main/resources/public/index.html` → `modules/dashboard/src/main/resources/public/index.html`
-- `src/main/resources/public/assets/css/styles.css` → `modules/dashboard/src/main/resources/public/assets/css/styles.css`
-- `src/main/resources/public/assets/js/dashboard.js` → `modules/dashboard/src/main/resources/public/assets/js/dashboard.js`
+```
+modules/integration-tests/
+├── src/
+│   └── test/scala/com/agenticai/core/
+│       └── [Integration tests]
+```
 
-#### Example Files:
-- `src/main/scala/com/agenticai/examples/ChatExample.scala` → `modules/examples/src/main/scala/com/agenticai/examples/chat/ChatExample.scala`
-- `src/test/scala/com/agenticai/examples/ChatExampleSpec.scala` → `modules/examples/src/test/scala/com/agenticai/examples/chat/ChatExampleSpec.scala`
-- `src/main/scala/com/agenticai/examples/webdashboard/models/Task.scala` → `modules/examples/src/main/scala/com/agenticai/examples/webdashboard/models/Task.scala`
-- `src/main/scala/com/agenticai/examples/webdashboard/models/TaskModels.scala` → `modules/examples/src/main/scala/com/agenticai/examples/webdashboard/models/TaskModels.scala`
+**Note**: The integration test setup is currently being consolidated to improve organization and test coverage.
 
 ## Module Dependencies
 
@@ -277,26 +319,31 @@ core <---- memory <---- agents <---- http <---- dashboard
 - **agents**: Depends on core and memory 🚧
 - **http**: Depends on core, memory, and agents 🚧
 - **dashboard**: Depends on core, memory, agents, and http 🚧
-- **workflow-demo**: Depends on core and examples ✅
+- **workflow-demo**: Depends on core ✅
 - **langchain4j**: Depends on core ✅
 - **mesh**: Depends on core ✅
 - **examples**: Depends on multiple modules ✅
-- **examples**: Depends on all other modules
+- **integration-tests**: Depends on all modules 🚧
+- **it**: Depends on core and langchain4j ✅
 
 ## Benefits of Modular Structure
 
-1. **Reduced Dependency Footprint**: Consumers can include only the modules they need
-2. **Clear Separation of Concerns**: Each module has a well-defined responsibility
-3. **Independent Versioning**: Modules can be versioned separately if needed
-4. **Better Testing**: Focused test suites for each module
-5. **Independent Development**: Teams can work on different modules in parallel
-6. **Simplified Maintenance**: Easier to understand and maintain smaller modules
-7. **Flexible Deployment**: Deploy only the needed components
+The modular structure provides several benefits:
+
+1. **Selective Dependency**: Consumers can depend only on the modules they need
+2. **Parallel Development**: Teams can work on different modules simultaneously
+3. **Focused Testing**: Each module has its own test suite
+4. **Clear Boundaries**: Well-defined interfaces between modules
+5. **Versioning Flexibility**: Modules can be versioned independently
+6. **Reduced Compilation Time**: Changes in one module don't require recompiling the entire codebase
 
 ## Migration Steps
 
-1. Create the module directory structure
-2. Move files to their new locations, updating package declarations
-3. Update import statements to reflect new package structure
-4. Run comprehensive tests on each module
-5. Update documentation to reflect the new structure
+The project is transitioning from a monolithic structure to a modular one. The migration involves:
+
+1. ✅ Creating module directories
+2. ✅ Setting up build.sbt for each module
+3. ✅ Moving files to appropriate modules
+4. ✅ Updating imports and dependencies
+5. 🚧 Refactoring code to respect module boundaries
+6. 🚧 Updating documentation to reflect the new structure

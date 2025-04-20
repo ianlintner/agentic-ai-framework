@@ -1,10 +1,10 @@
-# Agentic AI Framework
+# ZIO Agentic AI Framework
 
 A modern, type-safe framework for building AI agents using Scala 3 and ZIO.
 
 ## Overview
 
-Agentic AI Framework provides a robust and scalable foundation for building AI agents that can interact with various services and maintain state. Built on top of ZIO, it leverages functional programming principles to ensure type safety, concurrency, and resilience.
+ZIO Agentic AI Framework provides a robust and scalable foundation for building AI agents that can interact with various services and maintain state. Built on top of ZIO, it leverages functional programming principles to ensure type safety, concurrency, and resilience.
 
 ## Features
 
@@ -31,7 +31,7 @@ The framework is organized into the following modules:
 - ✅ **examples**: Example applications using the framework
 - ✅ **langchain4j**: Langchain4j integration for LLM access
 - 🚧 **mesh**: Distributed mesh network for agent communication
-- ✅ **integration-tests**: Integration tests for the framework
+- 🚧 **integration-tests**: Integration tests for the framework
 
 ## Getting Started
 
@@ -60,7 +60,8 @@ sbt "mesh/test"
 For integration tests:
 
 ```bash
-sbt integrationTest
+# Run integration tests for Langchain4j
+sbt "it/test"
 ```
 
 ### Generating Test Reports
@@ -78,7 +79,7 @@ The project includes advanced test reporting tools:
 ./scripts/run-tests-with-reports.sh --modules=core --skip-coverage
 ```
 
-This generates HTML test reports, coverage reports, and summary information. See [GitHub Actions Test Reports](docs/testing/GitHub_Actions_Test_Reports.md) for more details.
+This generates HTML test reports, coverage reports, and summary information.
 
 There's also a GitHub Actions workflow that can be run locally:
 
