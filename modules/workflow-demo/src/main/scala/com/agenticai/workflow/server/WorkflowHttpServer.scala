@@ -183,7 +183,7 @@ object WorkflowHttpServer:
                       ZIO.succeed(Response.json(ResultResponse(id, result).toJson))
                     case Some(Exit.Failure(_)) => 
                       ZIO.succeed(Response.status(Status.InternalServerError))
-                    case None => 
+                    case _ => 
                       ZIO.succeed(Response.status(Status.Processing))
                   }
                 } else {

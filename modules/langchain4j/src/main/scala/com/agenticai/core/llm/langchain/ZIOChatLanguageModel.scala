@@ -5,6 +5,8 @@ import dev.langchain4j.data.message.{AiMessage, ChatMessage}
 import zio.*
 import zio.stream.*
 
+import scala.jdk.CollectionConverters.*
+
 /** A ZIO wrapper for Langchain4j's ChatLanguageModel. This trait provides ZIO-based methods for
   * generating chat completions.
   */
@@ -16,7 +18,7 @@ trait ZIOChatLanguageModel:
     * @return
     *   A ZIO effect that completes with the chat model response
     */
-  def generate(messages: List[ChatMessage]): ZIO[Any, Throwable, AiMessage]
+  def generate(messages: List[ChatMessage]): ZIO[Any, LangchainError, AiMessage]
 
   /** Generates a chat completion as a stream of tokens.
     *
@@ -25,7 +27,7 @@ trait ZIOChatLanguageModel:
     * @return
     *   A ZStream of tokens as they are generated
     */
-  def generateStream(messages: List[ChatMessage]): ZStream[Any, Throwable, String]
+  def generateStream(messages: List[ChatMessage]): ZStream[Any, LangchainError, String]
 
 /** Live implementation of ZIOChatLanguageModel that delegates to a Langchain4j ChatLanguageModel.
   *
@@ -34,21 +36,24 @@ trait ZIOChatLanguageModel:
   */
 final case class ZIOChatLanguageModelLive(model: ChatLanguageModel) extends ZIOChatLanguageModel:
 
-  override def generate(messages: List[ChatMessage]): ZIO[Any, Throwable, AiMessage] =
-    ZIO.attemptBlocking {
+  override def generate(messages: List[ChatMessage]): ZIO[Any, LangchainError, AiMessage] =
+    ZIO.attempt {
       // Convert the list to an array and use the varargs method
       val messagesArray = messages.toArray
-      val response      = model.chat(messagesArray*)
-      // Create a new AiMessage from the response
-      AiMessage.from(response.toString)
-    }
+      val response = model.chat(messagesArray*)
+      
+      // Extract the AiMessage from the response
+      response.aiMessage()
+    }.mapError(LangchainError.fromLangchain4jException)
 
-  override def generateStream(messages: List[ChatMessage]): ZStream[Any, Throwable, String] =
-    // Implementation depends on streaming support in the chosen model
-    // For now, we'll just return the full response as a single chunk
+  override def generateStream(messages: List[ChatMessage]): ZStream[Any, LangchainError, String] =
+    // Simulate streaming by splitting the response
     ZStream.fromZIO(
       generate(messages).map(_.text())
-    )
+    ).flatMap { text =>
+      // Split the text into words to simulate streaming
+      ZStream.fromIterable(text.split(" ").map(_ + " "))
+    }
 
 object ZIOChatLanguageModel:
 
@@ -70,4 +75,4 @@ object ZIOChatLanguageModel:
     *   A ZLayer that provides a ZIOChatLanguageModel
     */
   def layer(model: ChatLanguageModel): ZLayer[Any, Nothing, ZIOChatLanguageModel] =
-    ZLayer.succeed(ZIOChatLanguageModelLive(model))
+    ZLayer.succeed(apply(model))

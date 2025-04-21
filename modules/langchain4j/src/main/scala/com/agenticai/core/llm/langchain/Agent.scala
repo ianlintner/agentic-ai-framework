@@ -14,7 +14,7 @@ trait Agent:
     * @return
     *   A ZStream of response tokens as they are generated
     */
-  def process(input: String): ZStream[Any, Throwable, String]
+  def process(input: String): ZStream[Any, LangchainError, String]
 
   /** Processes a user input and returns a complete response.
     *
@@ -23,7 +23,7 @@ trait Agent:
     * @return
     *   A ZIO effect that completes with the response
     */
-  def processSync(input: String): ZIO[Any, Throwable, String]
+  def processSync(input: String): ZIO[Any, LangchainError, String]
 
   /** Gets the name of this agent.
     *
@@ -37,14 +37,14 @@ trait Agent:
     * @return
     *   A ZIO effect that completes when the history is cleared
     */
-  def clearHistory(): ZIO[Any, Throwable, Unit]
+  def clearHistory(): ZIO[Any, LangchainError, Unit]
 
   /** Gets the conversation history.
     *
     * @return
     *   A ZIO effect that completes with the list of messages
     */
-  def getHistory: ZIO[Any, Throwable, List[ChatMessage]]
+  def getHistory: ZIO[Any, LangchainError, List[ChatMessage]]
 
 /** An implementation of Agent that uses Langchain4j and ZIO.
   *
@@ -68,29 +68,27 @@ final case class LangchainAgent(
     * @return
     *   A ZStream of response tokens as they are generated
     */
-  override def process(input: String): ZStream[Any, Throwable, String] =
-    for
+  override def process(input: String): ZStream[Any, LangchainError, String] =
+    ZStream.fromZIO(
       // Add the user message to memory
-      _ <- ZStream.fromZIO(memory.addUserMessage(input))
-
+      memory.addUserMessage(input).mapError(LangchainError.fromThrowable) *>
       // Get all messages from memory
-      messages <- ZStream.fromZIO(memory.messages)
-
+      memory.messages.mapError(LangchainError.fromThrowable)
+    ).flatMap { messages =>
       // Use the chat model to generate a response
-      responseChunk <- chatModel.generateStream(messages)
-
-      // Get the complete response to save to memory (only once at the end)
-      _ <- ZStream.fromZIO(ZIO.succeed(messages.size).flatMap { originalSize =>
-        memory.messages.flatMap { updatedMessages =>
-          // If we're at the last chunk and haven't saved the response yet
-          ZIO.when(updatedMessages.size == originalSize) {
-            // Note: In a real implementation, we would need to accumulate all chunks
-            // and save them at the end, but for now we'll save just this chunk
-            memory.addAssistantMessage(responseChunk)
-          }
-        }
-      })
-    yield responseChunk
+      val responseStream = chatModel.generateStream(messages)
+      
+      // Collect all response chunks to save as a single message at the end
+      val saveResponseEffect = responseStream.runCollect.flatMap { chunks =>
+        val fullResponse = chunks.mkString
+        memory.addAssistantMessage(fullResponse).mapError(LangchainError.fromThrowable)
+      }
+      
+      // Run the save effect in the background after the stream completes
+      ZStream.fromZIO(saveResponseEffect.fork).drain ++
+      // Return the original response stream
+      responseStream
+    }
 
   /** Processes a user input and returns a complete response.
     *
@@ -99,20 +97,20 @@ final case class LangchainAgent(
     * @return
     *   A ZIO effect that completes with the response
     */
-  override def processSync(input: String): ZIO[Any, Throwable, String] =
+  override def processSync(input: String): ZIO[Any, LangchainError, String] =
     for
       // Add the user message to memory
-      _ <- memory.addUserMessage(input)
+      _ <- memory.addUserMessage(input).mapError(LangchainError.fromThrowable)
 
       // Get all messages from memory
-      messages <- memory.messages
+      messages <- memory.messages.mapError(LangchainError.fromThrowable)
 
       // Use the chat model to generate a response
       response <- chatModel.generate(messages)
       responseText = response.text()
 
       // Add the assistant message to memory
-      _ <- memory.addAssistantMessage(responseText)
+      _ <- memory.addAssistantMessage(responseText).mapError(LangchainError.fromThrowable)
     yield responseText
 
   /** Gets the name of this agent.
@@ -127,14 +125,16 @@ final case class LangchainAgent(
     * @return
     *   A ZIO effect that completes when the history is cleared
     */
-  override def clearHistory(): ZIO[Any, Throwable, Unit] = memory.clear()
+  override def clearHistory(): ZIO[Any, LangchainError, Unit] =
+    memory.clear().mapError(LangchainError.fromThrowable)
 
   /** Gets the conversation history.
     *
     * @return
     *   A ZIO effect that completes with the list of messages
     */
-  override def getHistory: ZIO[Any, Throwable, List[ChatMessage]] = memory.messages
+  override def getHistory: ZIO[Any, LangchainError, List[ChatMessage]] =
+    memory.messages.mapError(LangchainError.fromThrowable)
 
 object LangchainAgent:
 
@@ -156,7 +156,7 @@ object LangchainAgent:
       config: ZIOChatModelFactory.ModelConfig,
       name: String = "agent",
       maxHistory: Int = 10
-  ): ZIO[Any, Throwable, Agent] =
+  ): ZIO[Any, LangchainError, Agent] =
     for
       model <- ZIOChatModelFactory.makeModel(modelType, config)
       memory <- ZIOChatMemory.createInMemory(
@@ -175,8 +175,6 @@ object LangchainAgent:
     * @return
     *   A new Agent
     */
-  // Instead of an apply method (which causes infinite recursion),
-  // let's remove it and rename the factory method for clarity
   def create(
       model: ZIOChatLanguageModel,
       memory: ZIOChatMemory,

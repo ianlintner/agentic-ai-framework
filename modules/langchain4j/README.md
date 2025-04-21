@@ -1,136 +1,175 @@
-# Langchain4j Integration Module
+# Langchain4j ZIO Integration
 
-## Implementation Status
-
-This module includes implementation status markers to clearly indicate the current state of each component:
-
-- ✅ **Implemented**: Features that are fully implemented and tested
-- 🚧 **In Progress**: Features that are partially implemented
-- 🔮 **Planned**: Features planned for future development
+This module provides ZIO wrappers for the [Langchain4j](https://github.com/langchain4j/langchain4j) library, enabling seamless integration with the ZIO ecosystem.
 
 ## Overview
 
-The Langchain4j module provides integration with the Langchain4j library, enabling seamless access to various LLM providers through a standardized interface. It wraps Langchain4j components in ZIO APIs for consistent integration with the rest of the Agentic AI Framework.
+The Langchain4j ZIO Integration module offers:
 
-## Current Status
+1. ZIO-based wrappers for Langchain4j's chat language models
+2. Typed error handling with a comprehensive error hierarchy
+3. ZIO Layers for dependency injection
+4. Support for streaming responses
+5. Memory management for conversation history
 
-Overall status: ✅ **Implemented**
+## Components
 
-### Features
+### ZIOChatLanguageModel
 
-- ✅ **ZIO Chat Model Factory**: Factory for creating ZIO-wrapped Langchain4j chat models
-- ✅ **Vertex AI Model Support**: Integration with Claude and other models on Google Vertex AI
-- ✅ **Streaming Support**: Real-time token streaming for chat completions
-- ✅ **Error Handling**: ZIO-based error handling for all LLM operations
-- 🔮 **Tool Support**: Integration with Langchain4j's tool support
+A ZIO wrapper for Langchain4j's `ChatLanguageModel` that provides:
+
+- Synchronous message generation with `generate`
+- Streaming message generation with `generateStream`
+- Proper error handling with typed errors
+
+```scala
+trait ZIOChatLanguageModel:
+  def generate(messages: List[ChatMessage]): ZIO[Any, LangchainError, AiMessage]
+  def generateStream(messages: List[ChatMessage]): ZStream[Any, LangchainError, String]
+```
+
+### ZIOChatModelFactory
+
+Factory methods for creating various LLM providers:
+
+- OpenAI models
+- Claude/Anthropic models
+- VertexAI/Gemini models
+
+```scala
+// Example: Creating a Claude model
+val model = ZIOChatModelFactory.makeClaudeModel(
+  apiKey = "your-api-key",
+  modelName = "claude-3-opus-20240229",
+  temperature = Some(0.7),
+  maxTokens = Some(1000)
+)
+```
+
+### ZIOChatMemory
+
+Memory management for conversation history:
+
+- Add user and assistant messages
+- Retrieve conversation history
+- Clear conversation history
+
+```scala
+// Example: Creating in-memory chat memory
+val memory = ZIOChatMemory.createInMemory(maxMessages = 10)
+```
+
+### Agent
+
+A high-level abstraction for building conversational agents:
+
+- Process user input with streaming or synchronous responses
+- Manage conversation history
+- Named agents for multi-agent systems
+
+```scala
+// Example: Creating an agent
+val agent = for {
+  model <- ZIOChatModelFactory.makeClaudeModel("your-api-key")
+  memory <- ZIOChatMemory.createInMemory(10)
+} yield LangchainAgent(model, memory, "assistant")
+
+// Using the agent
+val response = agent.flatMap(_.processSync("Hello, how can you help me today?"))
+```
+
+### Error Handling
+
+Comprehensive error handling with a typed error hierarchy:
+
+- `LangchainError` - Base error type
+- `ModelError` - Errors from the underlying model
+- `RateLimitError` - Rate limiting errors with retry information
+- `AuthenticationError` - Authentication failures
+- `ContextLengthError` - Token limit exceeded errors
+- `ServiceUnavailableError` - Service unavailability with retry information
+- `InvalidRequestError` - Invalid request parameters
+
+## Usage Examples
+
+### Basic Chat Interaction
+
+```scala
+import com.agenticai.core.llm.langchain.*
+import dev.langchain4j.data.message.UserMessage
+import zio.*
+
+val program = for {
+  model <- ZIOChatModelFactory.makeClaudeModel("your-api-key")
+  messages = List(UserMessage.from("What is the capital of France?"))
+  response <- model.generate(messages)
+} yield response.text()
+
+// Run the program
+Unsafe.run(program)
+```
+
+### Streaming Responses
+
+```scala
+import com.agenticai.core.llm.langchain.*
+import dev.langchain4j.data.message.UserMessage
+import zio.*
+import zio.stream.*
+
+val program = for {
+  model <- ZIOChatModelFactory.makeClaudeModel("your-api-key")
+  messages = List(UserMessage.from("Write a short poem about programming"))
+  stream = model.generateStream(messages)
+  _ <- stream.foreach(chunk => Console.printLine(chunk))
+} yield ()
+
+// Run the program
+Unsafe.run(program)
+```
+
+### Creating an Agent with Memory
+
+```scala
+import com.agenticai.core.llm.langchain.*
+import zio.*
+
+val program = for {
+  agent <- LangchainAgent.make(
+    modelType = ZIOChatModelFactory.ModelType.Claude,
+    config = ZIOChatModelFactory.ModelConfig(
+      apiKey = Some("your-api-key"),
+      temperature = Some(0.7)
+    ),
+    name = "assistant",
+    maxHistory = 10
+  )
+  
+  // First interaction
+  response1 <- agent.processSync("My name is Alice.")
+  _ <- Console.printLine(s"Agent: $response1")
+  
+  // Second interaction (agent remembers the name)
+  response2 <- agent.processSync("What's my name?")
+  _ <- Console.printLine(s"Agent: $response2")
+} yield ()
+
+// Run the program
+Unsafe.run(program)
+```
+
+## Testing
+
+The module includes comprehensive tests for all components:
+
+- Unit tests for individual components
+- Integration tests for end-to-end functionality
+- Mock implementations for testing without API calls
 
 ## Dependencies
 
 This module depends on:
 
-- `core`: Required - Uses ZIO integration and core interfaces
-- External dependency on Langchain4j library
-
-## Usage Examples
-
-```scala
-import com.agenticai.core.llm.langchain.ZIOChatModelFactory
-import com.agenticai.core.llm.langchain.VertexAIModelSupport
-import zio.*
-import dev.langchain4j.model.chat.*
-
-// Create a Claude model using Vertex AI
-val program = for {
-  // Get a Claude model on Vertex AI
-  model <- ZIOChatModelFactory.claudeOnVertexAI(
-    projectId = "my-project",
-    location = "us-central1"
-  )
-  
-  // Create a user message
-  userMessage = UserMessage.from("Explain quantum computing in simple terms")
-  
-  // Get a chat response
-  response <- model.chat(userMessage)
-  
-  // Print the response
-  _ <- Console.printLine(response.content)
-} yield ()
-```
-
-### Streaming Example
-
-```scala
-import com.agenticai.core.llm.langchain.ZIOChatModelFactory
-import zio.stream.*
-
-// Create a streaming chat model
-val streamingProgram = for {
-  // Get a streaming model
-  model <- ZIOChatModelFactory.vertexAIStreamingChatModel(
-    projectId = "my-project",
-    location = "us-central1",
-    modelName = "claude-3-sonnet@20240229"
-  )
-  
-  // Create a user message
-  userMessage = UserMessage.from("Write a short poem about AI")
-  
-  // Get a streaming response
-  responseStream <- model.chatStream(userMessage)
-  
-  // Process the stream
-  _ <- responseStream.foreach { responsePart =>
-    ZIO.succeed(print(responsePart.content))
-  }
-} yield ()
-```
-
-## Architecture
-
-The module is organized around:
-
-- **ZIOChatModelFactory**: Central factory for creating ZIO-wrapped Langchain4j models
-- **VertexAIModelSupport**: Specific support for Vertex AI models
-- **ZIO Wrappers**: Conversion layer between Langchain4j types and ZIO-based APIs
-
-The implementation leverages Langchain4j's provider interfaces while adding ZIO's effect management, error handling, and concurrency benefits.
-
-## Known Limitations
-
-- ✅ Limited to the models and providers supported by Langchain4j
-- 🚧 Tool support is not yet implemented
-- 🚧 Some advanced Langchain4j features may not have ZIO wrappers yet
-
-## Future Development
-
-Planned enhancements:
-
-- 🔮 Support for additional Langchain4j model providers
-- 🔮 Integration with Langchain4j's retrieval augmented generation (RAG) capabilities
-- 🔮 Tool/function calling support via Langchain4j
-- 🔮 Agent types from Langchain4j integrated with the framework's agent system
-
-## Testing
-
-The module includes tests for:
-
-- ZIO wrapper functionality
-- Vertex AI model integration
-- Stream handling
-
-Run tests for this module with:
-```bash
-sbt "langchain4j/test"
-```
-
-For test coverage:
-```bash
-./scripts/run-tests-with-reports.sh --modules=langchain4j
-```
-
-## See Also
-
-- [Langchain4j Integration Documentation](../../docs/implementation/Langchain4jIntegration.md)
-- [LLM Implementation Details](../../docs/implementation/LLMImplementationDetails.md)
-- [Official Langchain4j Documentation](https://docs.langchain4j.dev/)
+- ZIO 2.x
+- Langchain4j 1.x
+- Various model provider libraries (OpenAI, Anthropic, VertexAI)

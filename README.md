@@ -1,37 +1,177 @@
-# ZIO Agentic AI Framework
+# ZIO Agentic AI Framework V2
 
-A modern, type-safe framework for building AI agents using Scala 3 and ZIO.
+[![Build Status](https://img.shields.io/github/workflow/status/agentic-ai/zio-agentic-ai/CI)](https://github.com/agentic-ai/zio-agentic-ai/actions)
+[![Release](https://img.shields.io/github/v/release/agentic-ai/zio-agentic-ai?include_prereleases)](https://github.com/agentic-ai/zio-agentic-ai/releases)
+[![License](https://img.shields.io/github/license/agentic-ai/zio-agentic-ai)](LICENSE)
+[![Scala Steward badge](https://img.shields.io/badge/Scala_Steward-helping-blue.svg?style=flat&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAQCAMAAAARSr4IAAAAVFBMVEUAAACHjojlOy5NWlrKzcYRKjGFjIbp293YycuLa3pYY2LSqql4f3pCUFTgSjNodYRmcXUsPD/NTTbjRS+2jomhgnzNc223cGvZS0HaSD0XLjbaSjElhIr+AAAAAXRSTlMAQObYZgAAAHlJREFUCNdNyosOwyAIhWHAQS1Vt7a77/3fcxxdmv0xwmckutAR1nkm4ggbyEcg/wWmlGLDAA3oL50xi6fk5ffZ3E2E3QfZDCcCN2YtbEWZt+Drc6u6rlqv7Uk0LdKqqr5rk2UCRXOk0vmQKGfc94nOJyQjouF9H/wCc9gECEYfONoAAAAASUVORK5CYII=)](https://scala-steward.org)
+[![ZIO](https://img.shields.io/badge/powered%20by-ZIO-blue.svg)](https://zio.dev)
 
-## Overview
+A comprehensive platform for building distributed, autonomous agent systems with Scala 3 and ZIO.
 
-ZIO Agentic AI Framework provides a robust and scalable foundation for building AI agents that can interact with various services and maintain state. Built on top of ZIO, it leverages functional programming principles to ensure type safety, concurrency, and resilience.
+## Table of Contents
 
-## Features
+- [Introduction](#introduction)
+- [Vision & Focus](#vision--focus)
+- [Key Features](#key-features)
+- [Architecture Overview](#architecture-overview)
+- [Module Structure](#module-structure)
+- [Getting Started](#getting-started)
+- [Usage Patterns](#usage-patterns)
+- [Implementation Status](#implementation-status)
+- [Contributing](#contributing)
+- [License](#license)
 
-- ✅ **Type-Safe Agent Definitions**: Define agents with strong type guarantees
-- ✅ **ZIO Integration**: Built on ZIO for robust concurrent and asynchronous programming
-- ✅ **Stream-Based Message Processing**: Handle message streams efficiently
-- ✅ **Persistent Memory System**: Store and retrieve agent state across sessions
-- 🚧 **Circuit Patterns**: Factorio-inspired circuit patterns for agent composition and state management
-- 🚧 **Agent Combinators**: Compose agents using functional programming patterns
-- 🔮 **Bit Packing**: Efficient data transmission between agents
-- ✅ **Extensible Architecture**: Modular design for easy integration with various services
-- ✅ **LLM Integration**: Built-in integrations with Claude on Vertex AI
-- 🚧 **Web Dashboard**: Visualization and monitoring tools
+## Introduction
 
-## Project Structure
+Version 2 of the ZIO Agentic AI Framework represents a significant evolution from its predecessor, transforming from a foundational agent library into a comprehensive platform for building sophisticated, distributed multi-agent systems with seamless LLM integration.
+
+This new version embraces a capability-based architecture that enables complex agent composition, robust mesh networking, and sophisticated coordination mechanisms—all while maintaining the functional purity, type safety, and performance that ZIO is known for.
+
+```
+ ╭────────────────────────────────────────────────────────────╮
+ │                                                            │
+ │   ███████╗██╗ ██████╗     █████╗  ██████╗ ███████╗███╗   ██╗████████╗██╗ ██████╗  │
+ │   ╚══███╔╝██║██╔═══██╗   ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝██║██╔════╝  │
+ │     ███╔╝ ██║██║   ██║   ███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║   ██║██║       │
+ │    ███╔╝  ██║██║   ██║   ██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║   ██║██║       │
+ │   ███████╗██║╚██████╔╝   ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║   ██║╚██████╗  │
+ │   ╚══════╝╚═╝ ╚═════╝    ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝ ╚═════╝  │
+ │                                                                                    │
+ │                     FRAMEWORK VERSION 2                                            │
+ ╰────────────────────────────────────────────────────────────╯
+```
+
+## Vision & Focus
+
+Version 2 of the framework aims to achieve five key strategic goals:
+
+1. **Enhanced Composability**: Seamlessly compose specialized agents into complex workflows using a capability-based taxonomy
+2. **Improved Distributability**: Robust mesh networking for agents across environments with fault-tolerant communication
+3. **Advanced LLM Integration**: Deep integration with leading LLM providers with unified interfaces and optimizations
+4. **Enterprise Readiness**: Security, monitoring, and performance meeting enterprise requirements
+5. **Developer Experience**: Intuitive APIs, comprehensive documentation, and visual debugging tools
+
+## Key Features
+
+### Core Features
+
+- **✅ Capability-Based Agents**: Type-level capability descriptions for agent composition and discovery
+- **✅ Multi-Agent Coordination**: Orchestrate complex agent interactions and workflows
+- **✅ Distributed Mesh Network**: Connect agents across environments with secure, reliable communication
+- **✅ Advanced Memory System**: Efficient, persistent state management with synchronization
+- **✅ Workflow Orchestration**: Define and execute complex multi-step agent workflows
+- **✅ LLM Integration**: Unified interface for Claude, Vertex AI, and OpenAI providers
+- **✅ ZIO-First Architecture**: Built on ZIO for robust functional programming patterns
+
+### Enhanced Version 2 Features
+
+- **🔄 Dynamic Agent Discovery**: Automatically find and utilize agents based on capabilities
+- **🔄 Hierarchical Capability System**: Advanced capability inheritance and composition
+- **🔄 Compositional Workflow Engine**: Declarative workflow definitions with monitoring
+- **🔄 Enhanced Security & Observability**: Comprehensive monitoring, tracing, and security controls
+- **🔄 Developer Toolkit**: CLI tools, visual debugging, and comprehensive documentation
+
+### Coming Soon
+
+- **🚧 Visual Workflow Designer**: Graphical interface for designing agent workflows
+- **🚧 Dashboard**: Real-time monitoring and control of agent systems
+- **🚧 Performance Optimization Engine**: Automatic resource allocation and optimization
+- **🚧 Advanced Testing Framework**: Specialized tools for testing multi-agent systems
+
+## Architecture Overview
+
+Version 2 introduces a modular, layered architecture centered around five key components:
+
+```mermaid
+graph TD
+    classDef core fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef agent fill:#bbf,stroke:#333,stroke-width:1px;
+    classDef mesh fill:#bfb,stroke:#333,stroke-width:1px;
+    classDef workflow fill:#fbf,stroke:#333,stroke-width:1px;
+    classDef tools fill:#fbb,stroke:#333,stroke-width:1px;
+    
+    Core[Core Capability System] --> Memory[Memory System]
+    Core --> Registry[Agent Registry]
+    
+    Memory --> Agents[Agent System]
+    Registry --> Agents
+    
+    Agents --> Mesh[Distributed Mesh]
+    Agents --> Workflow[Workflow Engine]
+    Agents --> LLM[LLM Integration]
+    
+    Mesh --> Integration[Integration Layer]
+    Workflow --> Integration
+    LLM --> Integration
+    
+    Integration --> Security[Security Framework]
+    Integration --> Monitoring[Monitoring System]
+    Integration --> DevTools[Developer Tools]
+    
+    class Core,Memory,Registry core;
+    class Agents,LLM agent;
+    class Mesh mesh;
+    class Workflow workflow;
+    class Integration,Security,Monitoring,DevTools tools;
+```
+
+### Capability-Based Agent System
+
+The foundation of Version 2 is a capability-based agent system that provides:
+- Dynamic agent discovery and composition
+- Hierarchical capability inheritance
+- Runtime capability verification
+- Capability-based access control
+
+### Multi-Agent Systems
+
+Version 2 enables sophisticated agent collaboration through:
+- Coordinated goal-directed behavior
+- Role-based agent specialization
+- Multi-step reasoning pipelines
+- Adaptive agent selection based on context
+
+### Distributed Agent Mesh
+
+The enhanced mesh network supports:
+- Cross-environment agent communication
+- Fault-tolerant message delivery
+- Security and access controls
+- Optimized resource utilization
+
+### Workflow Orchestration
+
+Complex workflow management is provided through:
+- Visual workflow designer
+- Declarative workflow definitions
+- Monitoring and introspection
+- Error handling and recovery
+
+### Memory and State Management
+
+Advanced memory capabilities include:
+- Distributed state synchronization
+- Memory optimization techniques
+- Long-term persistence
+- Advanced information retrieval
+
+## Module Structure
 
 The framework is organized into the following modules:
-- ✅ **core**: Essential base definitions and interfaces
-- ✅ **memory**: Memory system implementation for agent state persistence
-- 🚧 **agents**: Agent implementations for various use cases
-- 🚧 **http**: Web API implementation
-- 🚧 **dashboard**: Web UI and visualizations
-- ✅ **workflow-demo**: Visual UI builder for agent workflow composition
-- ✅ **examples**: Example applications using the framework
-- ✅ **langchain4j**: Langchain4j integration for LLM access
-- 🚧 **mesh**: Distributed mesh network for agent communication
-- 🚧 **integration-tests**: Integration tests for the framework
+
+| Module | Description | Status |
+|--------|-------------|--------|
+| **core** | Core abstractions, capability system, and base utilities | ✅ Enhanced |
+| **agents** | Agent implementations and capability-based composition | ✅ Enhanced |
+| **memory** | Advanced memory system with distributed synchronization | ✅ Enhanced |
+| **mesh** | Mesh networking for distributed agent communication | ✅ Enhanced |
+| **workflow** | Workflow engine and composition patterns | ✅ New |
+| **http** | HTTP API and service integration | ✅ Enhanced |
+| **langchain4j** | Unified LLM provider integration | ✅ Enhanced |
+| **dashboard** | Web UI for monitoring and visualization | 🚧 In Progress |
+| **tools** | Developer tools and utilities | 🚧 In Progress |
+| **examples** | Example applications and patterns | ✅ Enhanced |
+| **integration-tests** | Integration tests for the full framework | ✅ Enhanced |
 
 ## Getting Started
 
@@ -41,214 +181,198 @@ The framework is organized into the following modules:
 - Scala 3.3.1 or later
 - SBT (Scala Build Tool)
 
-### Building the Project
+### Installation
 
-```bash
-sbt compile
+Add the framework to your `build.sbt`:
+
+```scala
+libraryDependencies ++= Seq(
+  "com.agentic-ai" %% "agentic-core" % "2.0.0",
+  "com.agentic-ai" %% "agentic-agents" % "2.0.0",
+  "com.agentic-ai" %% "agentic-memory" % "2.0.0",
+  "com.agentic-ai" %% "agentic-mesh" % "2.0.0",
+  "com.agentic-ai" %% "agentic-workflow" % "2.0.0",
+  "com.agentic-ai" %% "agentic-langchain4j" % "2.0.0"
+)
 ```
 
-### Running Tests
+### Quick Start Example
+
+Create a simple capability-based agent:
+
+```scala
+import com.agenticai.core.capability._
+import com.agenticai.agents._
+import com.agenticai.workflow._
+import zio._
+
+// Define a capability
+trait TextAnalysisCapability extends Capability {
+  def analyzeSentiment(text: String): Task[SentimentScore]
+  def extractKeywords(text: String): Task[List[String]]
+}
+
+// Implement an agent with the capability
+class TextAnalysisAgent extends BaseAgent with TextAnalysisCapability {
+  override def analyzeSentiment(text: String): Task[SentimentScore] = 
+    // Implementation
+    
+  override def extractKeywords(text: String): Task[List[String]] = 
+    // Implementation
+}
+
+// Register the agent with the registry
+val program = for {
+  registry <- AgentRegistry.live
+  agent = new TextAnalysisAgent()
+  _ <- registry.register(agent)
+  
+  // Find an agent with the required capability
+  textAnalyzer <- registry.findByCapability[TextAnalysisCapability]
+  
+  // Use the agent
+  sentiment <- textAnalyzer.analyzeSentiment("I love this framework!")
+  keywords <- textAnalyzer.extractKeywords("AI agents with Scala and ZIO")
+} yield (sentiment, keywords)
+
+// Run the program
+Unsafe.unsafeRun(program)
+```
+
+### Building and Testing
 
 ```bash
-# Run all tests
+# Compile the project
+sbt compile
+
+# Run tests
 sbt test
 
-# Run tests for a specific module
-sbt "mesh/test"
-```
-
-For integration tests:
-
-```bash
-# Run integration tests for Langchain4j
-sbt "it/test"
-```
-
-### Generating Test Reports
-
-The project includes advanced test reporting tools:
-
-```bash
-# Generate test reports with coverage for all modules
+# Run tests with coverage reports
 ./scripts/run-tests-with-reports.sh --all
-
-# Generate test reports for specific modules
-./scripts/run-tests-with-reports.sh --modules=core,mesh
-
-# Skip coverage reports for faster execution
-./scripts/run-tests-with-reports.sh --modules=core --skip-coverage
-```
-
-This generates HTML test reports, coverage reports, and summary information.
-
-There's also a GitHub Actions workflow that can be run locally:
-
-```bash
-# Using GitHub CLI
-gh workflow run scala-test-reports.yml
 ```
 
 ### Running Examples
 
-The project includes several examples that demonstrate how to use the framework:
-
 ```bash
-# Run the simple Claude agent example
-sbt runClaudeExample
+# Run the capability demo
+sbt "examples/runMain com.agenticai.examples.CapabilityDemo"
 
-# Test the connection to Vertex AI
-sbt testVertexConnection
-
-# Run the Workflow UI Builder Demo
+# Run the workflow demo
 sbt runWorkflowDemo
 
-# Run the Factorio-inspired Circuit Patterns Demo
-sbt "core/runMain com.agenticai.core.memory.circuits.examples.TextProcessingDemo"
+# Run the multi-agent collaboration demo
+sbt "examples/runMain com.agenticai.examples.MultiAgentDemo"
 ```
 
-## Circuit Patterns
+## Usage Patterns
 
-The framework includes a powerful circuit-based architecture inspired by Factorio's circuit network system. This approach enables sophisticated agent communication, state management, and composition patterns.
-
-### Key Components
-
-- ✅ **Memory Cells**: Stateful components that store and update values with precise timing control
-- 🚧 **Agent Combinators**: Compose agents like Factorio's combinators to create complex processing pipelines
-- 🚧 **Signals**: Typed data transmission between agents and memory cells
-- 🚧 **Clock**: Timing mechanism to synchronize operations across the system
-- 🔮 **Bit Packing**: Efficient data encoding for optimized signal transmission
-
-### Circuit Patterns Demo
-
-The framework includes an interactive terminal demo that visualizes these circuit patterns:
-
-```bash
-# Run the TextProcessingDemo in the core module
-sbt "core/runMain com.agenticai.core.memory.circuits.examples.TextProcessingDemo"
-```
-
-This demo showcases:
-- Memory cells storing state
-- Agents processing data like Factorio's arithmetic and decider combinators
-- Signal transmission between components
-- Clock mechanisms controlling timing
-- Bit packing for data compression
-
-See the [Factorio Circuit Implementation](docs/theory/FactorioCircuitImplementation.md) for theoretical background.
-
-### Using Circuit Patterns
+### Capability-Based Agent Composition
 
 ```scala
-import com.agenticai.core.memory.circuits.AgentCombinators._
-import com.agenticai.core.memory.circuits.CircuitMemory
+import com.agenticai.core.capability._
+import com.agenticai.agents._
 
-// Create a circuit memory cell that holds a value
-val counterCell = CircuitMemory.cell[Int](0)
-
-// Create a clock that increments every second
-val clock = CircuitMemory.clock(1.second)
-
-// Create an agent that increments the counter
-val incrementer = clock.wireTo(counterCell.update(_ + 1))
-
-// Create an agent that processes the counter value
-val processor = counterCell.wireTo { value =>
-  // Process the value here
-  println(s"Current count: $value")
+// Define capabilities
+trait ResearchCapability extends Capability {
+  def findInformation(query: String): Task[List[Document]]
 }
 
-// Connect the agents to form a circuit
-val circuit = incrementer.andThen(processor)
-
-// Run the circuit
-circuit.run()
-```
-
-## Usage
-
-### Creating a New Agent
-
-1. Extend the `BaseAgent` class with your message and action types:
-
-```scala
-class MyAgent extends BaseAgent[InputType, OutputType] {
-  override protected def processMessage(message: InputType): ZStream[Any, Throwable, OutputType] = {
-    // Implement your agent's logic here
-    ZStream.fromIterable(/* your processing logic */)
-  }
-}
-```
-
-2. Use the agent in your application:
-
-```scala
-val agent = new MyAgent()
-agent.process(inputMessage)
-  .foreach(action => /* handle the action */)
-```
-
-### Using the Memory System
-
-The framework provides a flexible memory system for storing agent state:
-
-```scala
-val memorySystem = new PersistentMemorySystem("./memory")
-val cell = memorySystem.createCell("myValue", "initialValue")
-
-// Read value
-val value = cell.read()
-
-// Update value
-cell.write("newValue")
-
-// Update with function
-cell.update(currentValue => s"$currentValue with addition")
-```
-
-### Using Circuit Memory
-
-For more advanced state management with timing control:
-
-```scala
-import com.agenticai.core.memory.circuits._
-
-// Create a circuit memory cell
-val cell = CircuitMemory.cell[String]("initial value")
-
-// Create an agent that processes the cell value
-val processor = cell.map(value => s"Processed: $value")
-
-// Create a clock-driven updater
-val updater = CircuitMemory.clock(500.millis).wireTo {
-  cell.update(current => s"$current - tick")
+trait WritingCapability extends Capability {
+  def generateText(prompt: String): Task[String]
 }
 
-// Run the circuit
-(processor combine updater).run()
+// Create a composed agent that requires both capabilities
+val researchWriter = for {
+  registry <- AgentRegistry.live
+  researcher <- registry.findByCapability[ResearchCapability]
+  writer <- registry.findByCapability[WritingCapability]
+  
+  // Compose the capabilities
+  result <- researcher.findInformation("Scala benefits")
+    .flatMap(docs => writer.generateText(s"Write about Scala benefits based on: ${docs.mkString}"))
+} yield result
 ```
 
-## Architecture
+### Workflow Orchestration
 
-The framework is built around the following core concepts:
+```scala
+import com.agenticai.workflow._
+import com.agenticai.agents._
 
-- ✅ `Agent`: The base trait defining the interface for all agents
-- ✅ `BaseAgent`: A base implementation providing common functionality
-- ✅ `MemoryCell`: Type-safe state container for agents
-- ✅ `MemorySystem`: Interface for persistent storage of agent state
-- ✅ `PersistentMemorySystem`: Implementation of the memory system
-- 🚧 `CircuitMemory`: State management with timing control
-- 🚧 `AgentCombinators`: Functional composition of agents
+// Define a workflow
+val researchWorkflow = Workflow.builder
+  .addStep("research", "Find information about ZIO", ResearchAction("ZIO benefits"))
+  .addStep("summarize", "Summarize the research", SummarizeAction())
+  .addStep("format", "Format as markdown", FormatAction("markdown"))
+  .withConnection("research", "summarize")
+  .withConnection("summarize", "format")
+  .build
 
-## Implementation Status Legend
+// Execute the workflow
+val result = WorkflowEngine.execute(researchWorkflow)
+```
 
-- ✅ **Implemented**: Features that are fully implemented and tested
-- 🚧 **In Progress**: Features that are partially implemented
-- 🔮 **Planned**: Features planned for future development
+### Distributed Mesh Communication
+
+```scala
+import com.agenticai.mesh._
+import com.agenticai.agents._
+
+// Create a mesh node
+val node = MeshNode.create("node1", "http://localhost:8080")
+
+// Register an agent with the mesh
+val agent = new TextAnalysisAgent()
+node.registerAgent(agent)
+
+// Connect to another node
+node.connect("node2", "http://localhost:8081")
+
+// Send a message to a remote agent
+val remoteAgent = node.getRemoteAgent[TextAnalysisCapability]("node2", "textAnalyzer")
+val result = remoteAgent.analyzeSentiment("This is amazing!")
+```
+
+### Memory Management
+
+```scala
+import com.agenticai.memory._
+import com.agenticai.core._
+
+// Create a distributed memory cell
+val memorySystem = DistributedMemorySystem.create("mySystem")
+val cell = memorySystem.createCell[String]("greeting", "Hello, World!")
+
+// Read and update the cell
+val program = for {
+  value <- cell.read
+  _ <- cell.update(current => s"$current Updated!")
+  newValue <- cell.read
+} yield (value, newValue)
+```
+
+## Implementation Status
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Capability Registry | ✅ Complete | Core capability system and registry |
+| Memory System | ✅ Complete | Enhanced memory with distributed support |
+| Agent Directory | ✅ Complete | Service for agent discovery and registration |
+| Multi-Agent Coordination | ✅ Complete | Orchestration of agent collaborations |
+| Mesh Network | ✅ Complete | Distributed agent communication |
+| Workflow Engine | ✅ Complete | Definition and execution of agent workflows |
+| LLM Integration | ✅ Complete | Unified provider interface for LLMs |
+| Dashboard UI | 🚧 In Progress | Web interface for monitoring and control |
+| Developer Tools | 🚧 In Progress | Tools and utilities for developers |
+| Visual Workflow Designer | 🚧 In Progress | Graphical workflow design interface |
+| Performance Optimization | 🔮 Planned | Automatic resource optimization |
+| Advanced Security Framework | 🔮 Planned | Enhanced security controls |
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions to the ZIO Agentic AI Framework are welcome! Please see our [Contributing Guide](CONTRIBUTING.md) for details on how to get involved.
 
 ## License
 
-MIT License - see the [LICENSE](LICENSE) file for details
+MIT License - see the [LICENSE](LICENSE) file for details.

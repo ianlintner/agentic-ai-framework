@@ -96,7 +96,7 @@ lazy val http = (project in file("modules/http"))
       "dev.zio" %% "zio-http" % "3.0.0-RC2",
       "dev.zio" %% "zio-json" % "0.6.2"
     )
-  ).dependsOn(core)
+  ).dependsOn(core, langchain4j)
 
 lazy val langchain4j = (project in file("modules/langchain4j"))
   .settings(name := "agentic-ai-langchain4j")
